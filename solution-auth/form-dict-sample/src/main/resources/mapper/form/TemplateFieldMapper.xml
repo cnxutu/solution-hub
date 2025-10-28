@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.cv.solution.formdict.form.mapper.TemplateFieldMapper">
+
+    <sql id="baseWhere">
+        where is_deleted = 0
+    </sql>
+
+    <!-- 分页列表 -->
+    <select id="selectTemplateFieldPageList"
+            resultType="com.cv.solution.formdict.form.pojo.vo.TemplateFieldPageVO">
+        select
+            id,
+            template_id AS templateId,
+            field_code AS fieldCode,
+            field_name AS fieldName,
+            field_type AS fieldType,
+            option_source AS optionSource,
+            dict_code AS dictCode,
+            required AS required,
+            default_value AS defaultValue,
+            field_sort AS fieldSort,
+            status AS status,
+            remark AS remark
+        from
+        tpl_template_field
+        <include refid="baseWhere"/>
+
+        order by create_time desc
+
+    </select>
+
+	<resultMap id="BaseResultMap" type="com.cv.solution.formdict.form.pojo.po.TemplateFieldPO">
+        <id column="id" property="id" />
+		<result column="template_id" property="templateId" />
+		<result column="field_code" property="fieldCode" />
+		<result column="field_name" property="fieldName" />
+		<result column="field_type" property="fieldType" />
+		<result column="option_source" property="optionSource" />
+		<result column="dict_code" property="dictCode" />
+		<result column="required" property="required" />
+		<result column="default_value" property="defaultValue" />
+		<result column="field_sort" property="fieldSort" />
+		<result column="status" property="status" />
+		<result column="remark" property="remark" />
+        <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
+        <result column="created_by" property="createdBy" />
+        <result column="updated_by" property="updatedBy" />
+        <result column="is_deleted" property="isDeleted" />
+	</resultMap>
+	<sql id="Base_Column_List">
+        id, template_id, field_code, field_name, field_type, option_source, dict_code, required, default_value, field_sort, status, remark, create_time, update_time, created_by, updated_by, is_deleted
+	</sql>
+	
+</mapper>

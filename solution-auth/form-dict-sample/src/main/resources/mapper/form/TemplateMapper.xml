@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.cv.solution.formdict.form.mapper.TemplateMapper">
+
+    <sql id="baseWhere">
+        where is_deleted = 0
+    </sql>
+
+    <!-- 分页列表 -->
+    <select id="selectTemplatePageList"
+            resultType="com.cv.solution.formdict.form.pojo.vo.TemplatePageVO">
+        select
+            id,
+            template_code AS templateCode,
+            template_name AS templateName,
+            template_type AS templateType,
+            status AS status,
+            remark AS remark
+        from
+        tpl_template
+        <include refid="baseWhere"/>
+
+        order by create_time desc
+
+    </select>
+
+	<resultMap id="BaseResultMap" type="com.cv.solution.formdict.form.pojo.po.TemplatePO">
+        <id column="id" property="id" />
+		<result column="template_code" property="templateCode" />
+		<result column="template_name" property="templateName" />
+		<result column="template_type" property="templateType" />
+		<result column="status" property="status" />
+		<result column="remark" property="remark" />
+        <result column="create_time" property="createTime" />
+        <result column="update_time" property="updateTime" />
+        <result column="created_by" property="createdBy" />
+        <result column="updated_by" property="updatedBy" />
+        <result column="is_deleted" property="isDeleted" />
+	</resultMap>
+	<sql id="Base_Column_List">
+        id, template_code, template_name, template_type, status, remark, create_time, update_time, created_by, updated_by, is_deleted
+	</sql>
+	
+</mapper>
