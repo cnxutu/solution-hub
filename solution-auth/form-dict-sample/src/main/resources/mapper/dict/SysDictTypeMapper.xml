@@ -10,6 +10,7 @@
     <select id="selectSysDictTypePageList"
             resultType="com.cv.solution.formdict.dict.pojo.vo.SysDictTypePageVO">
         select
+            id,
             dict_code AS dictCode,
             dict_name AS dictName,
             description AS description,

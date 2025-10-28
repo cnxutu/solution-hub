@@ -23,6 +23,16 @@ import java.util.List;
 public interface ISysDictItemService extends IService<SysDictItemPO> {
 
     /**
+     * 分页
+     *
+     * @param query 入参
+     * @return 分页结果
+     * @author xutu
+     * @date 2025-10-28 09:22:53
+     */
+    PageInfoVO<SysDictItemPageVO> pageList(SysDictItemPageQuery query);
+
+    /**
      * 新增
      *
      * @param param {@link SysDictItemAddOrEditParam}
@@ -49,16 +59,6 @@ public interface ISysDictItemService extends IService<SysDictItemPO> {
      * @date 2025-10-28 09:22:53
      */
     void delete(DeletedByIdListQuery query);
-
-    /**
-     * 分页
-     *
-     * @param query 入参
-     * @return 分页结果
-     * @author xutu
-     * @date 2025-10-28 09:22:53
-     */
-    PageInfoVO<SysDictItemPageVO> pageList(SysDictItemPageQuery query);
 
     /**
      * 详情

@@ -57,10 +57,5 @@ public class SysDictItemPageQuery extends PageQuery {
      */
     @NotNull(message = "状态 1=启用 0=禁用不能为空")
 	private Integer status;
-    /**
-     * 备注
-     */
-    @NotBlank(message = "备注不能为空")
-	private String remark;
 
 }

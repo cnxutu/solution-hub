@@ -45,6 +45,22 @@ public class SysDictItemController {
     @Resource
     private ISysDictItemService sysDictItemService;
 
+
+    /**
+     * @param query {@link }
+     * @return {@link Result<PageInfoVO>}
+     * @author xutu
+     * @date 2025-10-28 09:22:53
+     * @description 分页列表
+     * @menu 系统字典项表管理
+     **/
+    @RequestMapping(value = "/pageList", method = RequestMethod.POST)
+    public Result<PageInfoVO<SysDictItemPageVO>> pageList(@RequestBody @Validated SysDictItemPageQuery query) {
+        PageInfoVO vo = sysDictItemService.pageList(query);
+        return Result.success(vo);
+    }
+
+
     /**
      * @param param {@link SysDictItemAddOrEditParam}
      * @return {@link Result<Long>}
@@ -101,20 +117,6 @@ public class SysDictItemController {
     @GetMapping("/detail/{sysDictItemId}")
     public Result<SysDictItemVO> detail(@PathVariable("sysDictItemId") Long sysDictItemId) {
         return Result.success(sysDictItemService.detail(sysDictItemId));
-    }
-
-    /**
-     * @param query {@link }
-     * @return {@link Result<PageInfoVO>}
-     * @author xutu
-     * @date 2025-10-28 09:22:53
-     * @description 分页列表
-     * @menu 系统字典项表管理
-     **/
-    @RequestMapping(value = "/pageList", method = RequestMethod.POST)
-    public Result<PageInfoVO<SysDictItemPageVO>> pageList(@RequestBody SysDictItemPageQuery query) {
-        PageInfoVO vo = sysDictItemService.pageList(query);
-        return Result.success(vo);
     }
 
 }

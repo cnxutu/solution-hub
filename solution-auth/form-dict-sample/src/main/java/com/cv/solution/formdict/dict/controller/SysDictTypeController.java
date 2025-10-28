@@ -46,6 +46,20 @@ public class SysDictTypeController {
     private ISysDictTypeService sysDictTypeService;
 
     /**
+     * @param query {@link }
+     * @return {@link Result<PageInfoVO>}
+     * @author xutu
+     * @date 2025-10-28 09:22:53
+     * @description 分页列表
+     * @menu 系统字典类型表管理
+     **/
+    @RequestMapping(value = "/pageList", method = RequestMethod.POST)
+    public Result<PageInfoVO<SysDictTypePageVO>> pageList(@RequestBody SysDictTypePageQuery query) {
+        PageInfoVO vo = sysDictTypeService.pageList(query);
+        return Result.success(vo);
+    }
+
+    /**
      * @param param {@link SysDictTypeAddOrEditParam}
      * @return {@link Result<Long>}
      * @author xutu
@@ -101,20 +115,6 @@ public class SysDictTypeController {
     @GetMapping("/detail/{sysDictTypeId}")
     public Result<SysDictTypeVO> detail(@PathVariable("sysDictTypeId") Long sysDictTypeId) {
         return Result.success(sysDictTypeService.detail(sysDictTypeId));
-    }
-
-    /**
-     * @param query {@link }
-     * @return {@link Result<PageInfoVO>}
-     * @author xutu
-     * @date 2025-10-28 09:22:53
-     * @description 分页列表
-     * @menu 系统字典类型表管理
-     **/
-    @RequestMapping(value = "/pageList", method = RequestMethod.POST)
-    public Result<PageInfoVO<SysDictTypePageVO>> pageList(@RequestBody SysDictTypePageQuery query) {
-        PageInfoVO vo = sysDictTypeService.pageList(query);
-        return Result.success(vo);
     }
 
 }

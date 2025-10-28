@@ -55,6 +55,21 @@ public class SysDictTypeServiceImpl extends ServiceImpl<SysDictTypeMapper, SysDi
     private SysDictTypeMapper sysDictTypeMapper;
 
     /**
+     * 分页列表
+     *
+     * @param query {@link }
+     * @return {@link PageInfoVO}
+     * @author xutu
+     * @date 2025-10-28 09:22:53
+     */
+    @Override
+    public PageInfoVO<SysDictTypePageVO> pageList(SysDictTypePageQuery query) {
+        Page page = new Page(query.getCurrent(), query.getSize());
+        Page pageList = sysDictTypeMapper.selectSysDictTypePageList(page, query);
+        return PageUtils.buildPage(pageList);
+    }
+
+    /**
      * 新增
      *
      * @param param {@link SysDictTypeAddOrEditParam}
@@ -64,7 +79,14 @@ public class SysDictTypeServiceImpl extends ServiceImpl<SysDictTypeMapper, SysDi
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long add(SysDictTypeAddOrEditParam param) {
-        // 使用 hutool BeanUtil 进行 Param -> PO 转换
+        // 1、若为新增操作，查询 DICT_CODE 是否已存在
+        QueryWrapper<SysDictTypePO> eq = new QueryWrapper<SysDictTypePO>()
+                .eq("dict_code", param.getDictCode())
+                .eq("is_deleted", DeletedEnum.NORMAL.getCode());
+        if (this.count(eq) > 0) {
+            throw new BizException(ErrorCodeEnum.OPERATION_FAIL, "字典编码已存在");
+        }
+        // 2、执行新增操作
         SysDictTypePO po = new SysDictTypePO();
         BeanUtil.copyProperties(param, po);
         int i = sysDictTypeMapper.insert(po);
@@ -126,21 +148,6 @@ public class SysDictTypeServiceImpl extends ServiceImpl<SysDictTypeMapper, SysDi
         if (!b) {
             throw new BizException(ErrorCodeEnum.OPERATION_FAIL);
         }
-    }
-
-    /**
-     * 分页列表
-     *
-     * @param query {@link }
-     * @return {@link PageInfoVO}
-     * @author xutu
-     * @date 2025-10-28 09:22:53
-     */
-    @Override
-    public PageInfoVO<SysDictTypePageVO> pageList(SysDictTypePageQuery query) {
-        Page page = new Page(query.getCurrent(), query.getSize());
-        Page pageList = sysDictTypeMapper.selectSysDictTypePageList(page, query);
-        return PageUtils.buildPage(pageList);
     }
 
     /**
