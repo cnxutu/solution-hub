@@ -7,6 +7,7 @@ package com.cv.solution.formdict.form.controller;
 import com.cv.boot.common.enums.ErrorCodeEnum;
 import com.cv.boot.common.enums.DeletedEnum;
 import com.cv.boot.common.exception.BizException;
+import com.cv.solution.formdict.form.facade.TemplateFacade;
 import com.cv.solution.formdict.form.pojo.po.TemplatePO;
 import com.cv.solution.formdict.form.pojo.param.TemplateAddOrEditParam;
 import com.cv.solution.formdict.form.pojo.query.TemplatePageQuery;
@@ -43,7 +44,18 @@ import java.util.List;
 public class TemplateController {
 
     @Resource
+    private TemplateFacade templateFacade;
+
+    @Resource
     private ITemplateService templateService;
+
+    /**
+     * 根据模板编码获取模板定义（含字段与选项）
+     */
+    @GetMapping("/{code}")
+    public Result<TemplateVO> getTemplate(@PathVariable String code) {
+        return Result.success(templateFacade.getTemplateWithFields(code));
+    }
 
     /**
      * @param query {@link }

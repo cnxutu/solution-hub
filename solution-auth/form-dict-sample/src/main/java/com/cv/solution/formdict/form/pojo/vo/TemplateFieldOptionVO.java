@@ -20,42 +20,29 @@ import java.time.LocalDateTime;
 @Data
 public class TemplateFieldOptionVO {
 
-    /**
-     * 主键id
-     */
+    /** 选项ID */
     private Long id;
 
     /**
      * 所属模板ID
      */
-	private Long templateId;
-    /**
-     * 所属字段ID
-     */
-	private Long fieldId;
-    /**
-     * 选项编码
-     */
-	private String optionCode;
-    /**
-     * 选项名称
-     */
-	private String optionName;
-    /**
-     * 选项值（实际存储）
-     */
-	private String optionValue;
-    /**
-     * 版本号，可用于不同版本选项区分
-     */
-	private String version;
-    /**
-     * 排序
-     */
-	private Integer sortOrder;
-    /**
-     * 状态 1=启用 0=停用
-     */
-	private Integer status;
+    private Long templateId;
 
+    /** 所属字段ID */
+    private Long fieldId;
+
+    /** 选项编码 */
+    private String optionCode;
+
+    /** 选项名称 */
+    private String optionName;
+
+    /** 实际存储的选项值 */
+    private String optionValue;
+
+    /** 排序序号 */
+    private Integer sortOrder;
+
+    /** 状态 1=启用 0=停用 */
+    private Integer status;
 }
