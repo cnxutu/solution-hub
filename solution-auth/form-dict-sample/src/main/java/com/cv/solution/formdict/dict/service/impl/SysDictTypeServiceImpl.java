@@ -12,6 +12,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cv.boot.common.enums.ErrorCodeEnum;
 import com.cv.boot.common.enums.DeletedEnum;
 import com.cv.boot.common.exception.BizException;
+import com.cv.solution.formdict.dict.pojo.po.SysDictItemPO;
 import com.cv.solution.formdict.dict.pojo.po.SysDictTypePO;
 import com.cv.solution.formdict.dict.pojo.param.SysDictTypeAddOrEditParam;
 import com.cv.solution.formdict.dict.pojo.query.SysDictTypePageQuery;
@@ -19,6 +20,7 @@ import com.cv.solution.formdict.dict.pojo.vo.SysDictTypePageVO;
 import com.cv.solution.formdict.dict.pojo.vo.SysDictTypeVO;
 import com.cv.solution.formdict.dict.mapper.SysDictTypeMapper;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.cv.solution.formdict.dict.service.ISysDictItemService;
 import com.cv.solution.formdict.dict.service.ISysDictTypeService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.cv.boot.common.pojo.query.DeletedByIdListQuery;
@@ -30,11 +32,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import cn.hutool.core.collection.CollUtil;
 import lombok.extern.slf4j.Slf4j;
+
 import javax.annotation.Resource;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 
-/**   
+/**
  * 系统字典类型表服务实现层
  *
  * @author xutu
@@ -42,18 +46,21 @@ import java.util.List;
  */
 @Service
 @Slf4j
-public class SysDictTypeServiceImpl extends ServiceImpl<SysDictTypeMapper, SysDictTypePO> implements ISysDictTypeService  {
+public class SysDictTypeServiceImpl extends ServiceImpl<SysDictTypeMapper, SysDictTypePO> implements ISysDictTypeService {
+
+    @Resource
+    private ISysDictItemService sysDictItemService;
 
     @Resource
     private SysDictTypeMapper sysDictTypeMapper;
 
     /**
-    * 新增
-    *
-    * @param param {@link SysDictTypeAddOrEditParam}
-    * @author xutu
-    * @date 2025-10-28 09:22:53
-    */
+     * 新增
+     *
+     * @param param {@link SysDictTypeAddOrEditParam}
+     * @author xutu
+     * @date 2025-10-28 09:22:53
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long add(SysDictTypeAddOrEditParam param) {
@@ -68,12 +75,12 @@ public class SysDictTypeServiceImpl extends ServiceImpl<SysDictTypeMapper, SysDi
     }
 
     /**
-    * 编辑
-    *
-    * @param param {@link SysDictTypeAddOrEditParam}
-    * @author xutu
-    * @date 2025-10-28 09:22:53
-    */
+     * 编辑
+     *
+     * @param param {@link SysDictTypeAddOrEditParam}
+     * @author xutu
+     * @date 2025-10-28 09:22:53
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void edit(SysDictTypeAddOrEditParam param) {
@@ -87,15 +94,30 @@ public class SysDictTypeServiceImpl extends ServiceImpl<SysDictTypeMapper, SysDi
     }
 
     /**
-    * 删除
-    *
-    * @param query id
-    * @author xutu
-    * @date 2025-10-28 09:22:53
-    */
+     * 删除
+     *
+     * @param query id
+     * @author xutu
+     * @date 2025-10-28 09:22:53
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void delete(DeletedByIdListQuery query) {
+        // 1、查询所有的字典类型
+        List<SysDictTypePO> sysDictTypePOS = this.listByIds(query.getIdList());
+        if (CollUtil.isEmpty(sysDictTypePOS)) {
+            return;
+        }
+        // 2、查询当前 dict_code 下是否有字典项
+        LambdaQueryWrapper<SysDictItemPO> itemQueryWrapper = new LambdaQueryWrapper<>();
+        itemQueryWrapper
+                .in(SysDictItemPO::getDictCode, sysDictTypePOS.stream().map(SysDictTypePO::getDictCode).collect(Collectors.toList()))
+                .eq(SysDictItemPO::getIsDeleted, DeletedEnum.NORMAL.getCode());
+        long count = sysDictItemService.count(itemQueryWrapper);
+        if (count > 0) {
+            throw new BizException(ErrorCodeEnum.OPERATION_FAIL, "字典类型下有字典项，请先删除字典项");
+        }
+        // 3、执行删除操作
         SysDictTypePO po = new SysDictTypePO();
         po.setIsDeleted(DeletedEnum.DELETED.getCode());
         boolean b = update(po, new UpdateWrapper<SysDictTypePO>()
@@ -133,7 +155,8 @@ public class SysDictTypeServiceImpl extends ServiceImpl<SysDictTypeMapper, SysDi
     public SysDictTypeVO detail(Long sysDictTypeId) {
         SysDictTypeVO vo = new SysDictTypeVO();
         SysDictTypePO po = isExistById(sysDictTypeId);
-        return BeanUtil.copyProperties(po, vo);
+        BeanUtil.copyProperties(po, vo);
+        return vo;
     }
 
     private SysDictTypePO isExistById(Long sysDictTypeId) {

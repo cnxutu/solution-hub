@@ -24,7 +24,7 @@ CREATE TABLE `sys_dict_type` (
 
 CREATE TABLE `sys_dict_item` (
   `id` bigint NOT NULL AUTO_INCREMENT COMMENT '主键ID',
-  `dict_code` varchar(100) NOT NULL COMMENT '所属字典编码',
+  `dict_code` varchar(100) NOT NULL COMMENT '关联字典类型编码（逻辑外键: sys_dict.dict_code）',
   `item_value` varchar(100) NOT NULL COMMENT '字典项值',
   `item_name` varchar(200) NOT NULL COMMENT '字典项名称',
   `item_sort` int DEFAULT 0 COMMENT '排序值',

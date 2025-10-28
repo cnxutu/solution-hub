@@ -38,7 +38,7 @@ import java.util.List;
  * @date 2025-10-28 09:22:53
  */
 @RestController
-@RequestMapping("/sysDictItem")
+@RequestMapping("/sysDict/item")
 @Slf4j
 public class SysDictItemController {
 
