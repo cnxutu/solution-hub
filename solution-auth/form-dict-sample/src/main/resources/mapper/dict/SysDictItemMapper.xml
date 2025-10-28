@@ -22,8 +22,10 @@
         from
         sys_dict_item
         <include refid="baseWhere"/>
-
-            order by create_time desc
+        <if test="query.dictCode != null and query.dictCode != '' ">
+            and dict_code = #{query.dictCode}
+        </if>
+        order by create_time desc
 
     </select>
 

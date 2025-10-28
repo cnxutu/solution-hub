@@ -55,7 +55,7 @@ public class SysDictItemController {
      * @menu 系统字典项表管理
      **/
     @RequestMapping(value = "/pageList", method = RequestMethod.POST)
-    public Result<PageInfoVO<SysDictItemPageVO>> pageList(@RequestBody @Validated SysDictItemPageQuery query) {
+    public Result<PageInfoVO<SysDictItemPageVO>> pageList(@RequestBody SysDictItemPageQuery query) {
         PageInfoVO vo = sysDictItemService.pageList(query);
         return Result.success(vo);
     }
