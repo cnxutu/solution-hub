@@ -3,22 +3,13 @@
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
-
     <parent>
         <groupId>com.cv</groupId>
-        <artifactId>knowledge-parent</artifactId>  <!-- 注意这里必须和父包一致 -->
+        <artifactId>solution-auth</artifactId>
         <version>1.0.0</version>
-        <!-- 由于是独立仓库，relativePath 可以指向本地父包路径或直接不写 -->
-        <!-- <relativePath>../knowledge-parent/pom.xml</relativePath> -->
     </parent>
 
-    <groupId>com.cv</groupId>
-    <artifactId>solution-hub</artifactId>
-    <version>1.0.0</version>
-    <packaging>pom</packaging>
-    <modules>
-        <module>solution-auth</module>
-    </modules>
+    <artifactId>form-dict-sample</artifactId>
 
     <properties>
         <maven.compiler.source>17</maven.compiler.source>
