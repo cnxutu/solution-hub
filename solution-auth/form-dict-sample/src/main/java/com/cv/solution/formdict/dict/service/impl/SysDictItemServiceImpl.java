@@ -133,7 +133,8 @@ public class SysDictItemServiceImpl extends ServiceImpl<SysDictItemMapper, SysDi
     public SysDictItemVO detail(Long sysDictItemId) {
         SysDictItemVO vo = new SysDictItemVO();
         SysDictItemPO po = isExistById(sysDictItemId);
-        return BeanUtil.copyProperties(po, vo);
+        BeanUtil.copyProperties(po, vo);
+        return vo;
     }
 
     private SysDictItemPO isExistById(Long sysDictItemId) {

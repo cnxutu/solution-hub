@@ -1,0 +1,45 @@
+
+# ---------------- Spring MVC ----------------
+server:
+  port: 18081
+
+
+# ---------------- Spring ----------------
+spring:
+  main:
+    allow-bean-definition-overriding: true
+  profiles:
+    active: dev
+  application:
+    name: form-dict-server
+  # ---------------- 数据源配置 ----------------
+  datasource:
+    url: jdbc:mysql://localhost:3306/solution-hub?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
+    username: root
+    password: Win@2026!
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      pool-name: HikariCP
+
+
+# ---------------- MyBatis-Plus ----------------
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true      # 数据库字段下划线自动转驼峰
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl  # 控制台打印SQL
+  global-config:
+    db-config:
+      id-type: auto
+      logic-delete-value: 1
+      logic-not-delete-value: 0
+      field-strategy: not_empty
+    banner: false
+
+  # Mapper 扫描包（如果没有在 Java 配置类用 @MapperScan）
+  mapper-locations: classpath:/mapper/**/*.xml
+
+  type-aliases-package: com.cv.solution.formdict.*.pojo.po  # POJO包
