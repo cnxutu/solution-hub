@@ -191,15 +191,16 @@ public class TemplateFacade {
         // 3️⃣ 构建所有选项并批量保存
         List<TemplateFieldOptionPO> optionList = param.getTemplateFields().stream()
                 .filter(f -> CollectionUtils.isNotEmpty(f.getTemplateFieldOptions()))
-                .flatMap(f -> // 使用 flatmap，把每个字段 f 内部的选项列表 List<TemplateFieldOptionParam> 的流 “打平” 成一个单层的流。
+                .flatMap(   // 使用 flatmap，把每个字段 f 内部的选项列表 List<TemplateFieldOptionParam> 的流 “打平” 成一个单层的流。
+                        f ->
 
-                        f.getTemplateFieldOptions().stream().map(opt -> {
-                            TemplateFieldOptionPO option = new TemplateFieldOptionPO();
-                            BeanUtil.copyProperties(opt, option);
-                            // 从映射表中取出 fieldId
-                            option.setFieldId(fieldMapping.get(f).getId());
-                            return option;
-                        })).collect(Collectors.toList()
+                                f.getTemplateFieldOptions().stream().map(opt -> {
+                                    TemplateFieldOptionPO option = new TemplateFieldOptionPO();
+                                    BeanUtil.copyProperties(opt, option);
+                                    // 从映射表中取出 fieldId
+                                    option.setFieldId(fieldMapping.get(f).getId());
+                                    return option;
+                                })).collect(Collectors.toList()
                 );
 
         if (CollectionUtils.isNotEmpty(optionList)) {
