@@ -24,7 +24,7 @@ public class FormFieldDataParam {
      * 对于时间类型可以直接传 yyyy-MM-dd 或 yyyy-MM-dd HH:mm:ss
      */
     @NotNull(message = "字段值不能为空")
-    private String fieldValue;
+    private Object fieldValue;
 
 
 }

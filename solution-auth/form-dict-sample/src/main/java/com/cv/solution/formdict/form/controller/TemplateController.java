@@ -6,6 +6,7 @@ package com.cv.solution.formdict.form.controller;
 
 import com.cv.boot.common.enums.ErrorCodeEnum;
 import com.cv.solution.formdict.form.facade.TemplateFacade;
+import com.cv.solution.formdict.form.pojo.param.FormTemplateDataParam;
 import com.cv.solution.formdict.form.pojo.param.TemplateParam;
 import com.cv.solution.formdict.form.pojo.query.TemplatePageQuery;
 import com.cv.solution.formdict.form.pojo.vo.TemplatePageVO;
@@ -55,9 +56,18 @@ public class TemplateController {
     /**
      * 保存模板
      */
+    @PostMapping("/saveTemplateForm")
+    public Result saveTemplateForm(@RequestBody TemplateParam param) {
+        templateFacade.saveTemplateFormNew(param);
+        return Result.success();
+    }
+
+    /**
+     * 保存对应模板的数据
+     */
     @PostMapping("/saveTemplateData")
-    public Result saveTemplateData(@RequestBody TemplateParam param) {
-        templateFacade.saveTemplateDataNew(param);
+    public Result saveTemplateData(@RequestBody FormTemplateDataParam param) {
+        templateFacade.saveTemplateData(param);
         return Result.success();
     }
 

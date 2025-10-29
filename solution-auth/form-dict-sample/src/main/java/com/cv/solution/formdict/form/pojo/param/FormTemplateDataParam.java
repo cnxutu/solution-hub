@@ -18,6 +18,6 @@ public class FormTemplateDataParam {
     private Long recordId;
 
     /** 字段值集合 */
-    private List<TemplateFieldValueParam> fields;
+    private List<FormFieldDataParam> fieldValueParamList;
 
 }

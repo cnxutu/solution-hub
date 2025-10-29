@@ -6,11 +6,10 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.cv.boot.common.exception.BizException;
 import com.cv.solution.formdict.common.enums.TemplateFieldTypeEnum;
+import com.cv.solution.formdict.common.util.TemplateValidatorUtils;
 import com.cv.solution.formdict.dict.pojo.po.SysDictItemPO;
 import com.cv.solution.formdict.dict.service.ISysDictItemService;
-import com.cv.solution.formdict.form.pojo.param.TemplateFieldOptionParam;
-import com.cv.solution.formdict.form.pojo.param.TemplateFieldParam;
-import com.cv.solution.formdict.form.pojo.param.TemplateParam;
+import com.cv.solution.formdict.form.pojo.param.*;
 import com.cv.solution.formdict.form.pojo.po.*;
 import com.cv.solution.formdict.form.pojo.vo.*;
 import com.cv.solution.formdict.form.service.*;
@@ -24,6 +23,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -40,6 +40,7 @@ public class TemplateFacade {
     private final ITemplateFieldService fieldService;
     private final ITemplateFieldOptionService optionService;
     private final ISysDictItemService dictItemService;
+    private final ITemplateDataService dataService;
 
     /**
      * 根据模板编码获取模板及其字段定义（含选项）
@@ -123,7 +124,7 @@ public class TemplateFacade {
      * @param param
      */
     @Transactional(rollbackFor = Exception.class)
-    public void saveTemplateData(TemplateParam param) {
+    public void saveTemplateForm(TemplateParam param) {
 
         // 1️⃣ 保存模板主表信息
         TemplatePO template = new TemplatePO();
@@ -157,7 +158,7 @@ public class TemplateFacade {
      * @param param
      */
     @Transactional(rollbackFor = Exception.class)
-    public void saveTemplateDataNew(TemplateParam param) {
+    public void saveTemplateFormNew(TemplateParam param) {
         // 1️⃣ 保存模板主表
         TemplatePO template = new TemplatePO();
         BeanUtil.copyProperties(param, template);
@@ -168,7 +169,7 @@ public class TemplateFacade {
         }
         // 2️⃣ 动态校验每个字段
         for (TemplateFieldParam fieldParam : param.getTemplateFields()) {
-            validateTemplateFieldParam(fieldParam); // 根据 TemplateFieldTypeEnum 校验
+            TemplateValidatorUtils.validateTemplateFieldParam(fieldParam); // 根据 TemplateFieldTypeEnum 校验
         }
 
         // 2️⃣ 构建字段列表（使用 stream map + BeanUtil 可以兼顾拷贝 + 其它字段的赋值等额外操作 更灵活）
@@ -216,47 +217,42 @@ public class TemplateFacade {
     }
 
 
-    /**
-     * 模板校验字段参数
-     *
-     * @param field
-     */
-    private void validateTemplateFieldParam(TemplateFieldParam field) {
-        // 校验字段类型合法性
-        try {
-            TemplateFieldTypeEnum.valueOf(field.getFieldType());
-        } catch (IllegalArgumentException e) {
-            throw new IllegalArgumentException(field.getFieldCode() + " 字段类型不合法: " + field.getFieldType());
-        }
+    @Transactional(rollbackFor = Exception.class)
+    public void saveTemplateData(FormTemplateDataParam param) {
 
-        // 校验选项来源
-        if (field.getOptionSource() == 1 && (field.getDictCode() == null || field.getDictCode().isEmpty())) {
-            throw new IllegalArgumentException(field.getFieldCode() + " optionSource=1 必须绑定 dictCode");
-        }
+        // 1️⃣ 获取模板字段定义
+        List<TemplateFieldPO> templateFields = fieldService.list(
+                new LambdaQueryWrapper<TemplateFieldPO>()
+                        .eq(TemplateFieldPO::getTemplateId, param.getTemplateId())
+                        .eq(TemplateFieldPO::getIsDeleted, 0)
+        );
 
-        if (field.getOptionSource() == 2 && CollectionUtils.isEmpty(field.getTemplateFieldOptions())) {
-            throw new IllegalArgumentException(field.getFieldCode() + " optionSource=2 必须有模板专属选项");
-        }
+        Map<String, FormFieldDataParam> fieldDataMap = param.getFieldValueParamList().stream()
+                .collect(Collectors.toMap(FormFieldDataParam::getFieldCode, Function.identity()));
 
-        // 校验必填字段
-        if (field.getRequired() == null) {
-            throw new IllegalArgumentException(field.getFieldCode() + " 必填属性不能为空");
-        }
+        // 2️⃣ 校验录入数据
+        TemplateValidatorUtils.validateFieldData(templateFields, fieldDataMap);
 
-        // 校验排序
-        if (field.getFieldSort() == null) {
-            throw new IllegalArgumentException(field.getFieldCode() + " 字段排序不能为空");
-        }
+        // 3️⃣ 构建 tpl_template_data PO
+        List<TemplateDataPO> dataList = templateFields.stream()
+                .map(field -> {
+                    FormFieldDataParam dataParam = fieldDataMap.get(field.getFieldCode());
+                    TemplateDataPO data = new TemplateDataPO();
+                    data.setTemplateId(param.getTemplateId());
+                    data.setRecordId(param.getRecordId());
+                    data.setFieldCode(field.getFieldCode());
+                    if (dataParam != null && dataParam.getFieldValue() != null) {
+                        data.setFieldValue(dataParam.getFieldValue().toString());
+                    }
+                    return data;
+                })
+                .collect(Collectors.toList());
 
-        // 校验状态
-        if (field.getStatus() == null) {
-            throw new IllegalArgumentException(field.getFieldCode() + " 字段状态不能为空");
-        }
-
-        // 可选：校验备注长度
-        if (field.getRemark() != null && field.getRemark().length() > 512) {
-            throw new IllegalArgumentException(field.getFieldCode() + " 备注过长");
+        // 4️⃣ 批量插入
+        if (CollectionUtils.isNotEmpty(dataList)) {
+            dataService.saveBatch(dataList);
         }
     }
+
 
 }
