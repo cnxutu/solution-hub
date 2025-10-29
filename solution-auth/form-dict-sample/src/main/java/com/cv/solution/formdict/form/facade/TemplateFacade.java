@@ -5,6 +5,7 @@ import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.cv.boot.common.exception.BizException;
+import com.cv.solution.formdict.common.enums.TemplateFieldTypeEnum;
 import com.cv.solution.formdict.dict.pojo.po.SysDictItemPO;
 import com.cv.solution.formdict.dict.service.ISysDictItemService;
 import com.cv.solution.formdict.form.pojo.param.TemplateFieldOptionParam;
@@ -165,6 +166,10 @@ public class TemplateFacade {
         if (CollectionUtils.isEmpty(param.getTemplateFields())) {
             return;
         }
+        // 2️⃣ 动态校验每个字段
+        for (TemplateFieldParam fieldParam : param.getTemplateFields()) {
+            validateTemplateFieldParam(fieldParam); // 根据 TemplateFieldTypeEnum 校验
+        }
 
         // 2️⃣ 构建字段列表（使用 stream map + BeanUtil 可以兼顾拷贝 + 其它字段的赋值等额外操作 更灵活）
         List<TemplateFieldPO> fieldList = param.getTemplateFields().stream()
@@ -197,6 +202,8 @@ public class TemplateFacade {
                                 f.getTemplateFieldOptions().stream().map(opt -> {
                                     TemplateFieldOptionPO option = new TemplateFieldOptionPO();
                                     BeanUtil.copyProperties(opt, option);
+                                    // ✅ 新增：设置模板 ID
+                                    option.setTemplateId(template.getId());
                                     // 从映射表中取出 fieldId
                                     option.setFieldId(fieldMapping.get(f).getId());
                                     return option;
@@ -208,5 +215,48 @@ public class TemplateFacade {
         }
     }
 
+
+    /**
+     * 模板校验字段参数
+     *
+     * @param field
+     */
+    private void validateTemplateFieldParam(TemplateFieldParam field) {
+        // 校验字段类型合法性
+        try {
+            TemplateFieldTypeEnum.valueOf(field.getFieldType());
+        } catch (IllegalArgumentException e) {
+            throw new IllegalArgumentException(field.getFieldCode() + " 字段类型不合法: " + field.getFieldType());
+        }
+
+        // 校验选项来源
+        if (field.getOptionSource() == 1 && (field.getDictCode() == null || field.getDictCode().isEmpty())) {
+            throw new IllegalArgumentException(field.getFieldCode() + " optionSource=1 必须绑定 dictCode");
+        }
+
+        if (field.getOptionSource() == 2 && CollectionUtils.isEmpty(field.getTemplateFieldOptions())) {
+            throw new IllegalArgumentException(field.getFieldCode() + " optionSource=2 必须有模板专属选项");
+        }
+
+        // 校验必填字段
+        if (field.getRequired() == null) {
+            throw new IllegalArgumentException(field.getFieldCode() + " 必填属性不能为空");
+        }
+
+        // 校验排序
+        if (field.getFieldSort() == null) {
+            throw new IllegalArgumentException(field.getFieldCode() + " 字段排序不能为空");
+        }
+
+        // 校验状态
+        if (field.getStatus() == null) {
+            throw new IllegalArgumentException(field.getFieldCode() + " 字段状态不能为空");
+        }
+
+        // 可选：校验备注长度
+        if (field.getRemark() != null && field.getRemark().length() > 512) {
+            throw new IllegalArgumentException(field.getFieldCode() + " 备注过长");
+        }
+    }
 
 }

@@ -5,10 +5,7 @@
 package com.cv.solution.formdict.form.controller;
 
 import com.cv.boot.common.enums.ErrorCodeEnum;
-import com.cv.boot.common.enums.DeletedEnum;
-import com.cv.boot.common.exception.BizException;
-import com.cv.solution.formdict.form.pojo.po.TemplateDataPO;
-import com.cv.solution.formdict.form.pojo.param.TemplateDataAddOrEditParam;
+import com.cv.solution.formdict.form.pojo.param.TemplateDataParam;
 import com.cv.solution.formdict.form.pojo.query.TemplateDataPageQuery;
 import com.cv.solution.formdict.form.pojo.vo.TemplateDataPageVO;
 import com.cv.solution.formdict.form.pojo.vo.TemplateDataVO;
@@ -26,10 +23,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.RequestParam;
-import javax.annotation.Resource;
 
-import java.util.List;
+import javax.annotation.Resource;
 
 /**
  * 模板录入数据表API接口层
@@ -60,7 +55,7 @@ public class TemplateDataController {
     }
 
     /**
-     * @param param {@link TemplateDataAddOrEditParam}
+     * @param param {@link TemplateDataParam}
      * @return {@link Result<Long>}
      * @author xutu
      * @date 2025-10-28 19:44:00
@@ -68,13 +63,13 @@ public class TemplateDataController {
      * @menu 模板录入数据表管理
      **/
     @PostMapping("/add")
-    public Result<Long> add(@RequestBody @Validated TemplateDataAddOrEditParam param) {
+    public Result<Long> add(@RequestBody @Validated TemplateDataParam param) {
         Long id = templateDataService.add(param);
         return Result.success(id);
     }
 
     /**
-     * @param param {@link TemplateDataAddOrEditParam}
+     * @param param {@link TemplateDataParam}
      * @return {@link Result<Long>}
      * @author xutu
      * @date 2025-10-28 19:44:00
@@ -82,7 +77,7 @@ public class TemplateDataController {
      * @menu 模板录入数据表管理
      **/
     @PostMapping("/edit")
-    public Result<Long> edit(@RequestBody @Validated TemplateDataAddOrEditParam param) {
+    public Result<Long> edit(@RequestBody @Validated TemplateDataParam param) {
         templateDataService.edit(param);
         return Result.success(param.getId());
     }

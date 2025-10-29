@@ -1,20 +1,47 @@
+/**
+ * Copyright (c) 2025 Tu Personal Research
+ * All rights reserved.
+ */
 package com.cv.solution.formdict.form.pojo.param;
 
-import java.util.List;
+import lombok.Data;
 
-/**
- * @author: xutu
- * @since: 2025/10/29 13:24
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
+
+/**   
+ * 模板录入数据表 新增接口入参
+ *
+ * @author xutu
+ * @date 2025-10-28 19:44:00
  */
+@Data
 public class TemplateDataParam {
 
-    /** 模板ID */
-    private Long templateId;
+    /**
+     * 主键 id
+     */
+    private Long id;
 
-    /** 唯一记录ID，用于一次完整录入（可由前端生成 UUID） */
-    private Long recordId;
-
-    /** 字段值集合 */
-    private List<TemplateFieldValueParam> fields;
+    /**
+     * 所属模板ID
+     */
+    @NotNull(message = "所属模板ID不能为空")
+	private Long templateId;
+    /**
+     * 录入记录ID，标识一次完整录入
+     */
+    @NotNull(message = "录入记录ID，标识一次完整录入不能为空")
+	private Long recordId;
+    /**
+     * 字段编码
+     */
+    @NotBlank(message = "字段编码不能为空")
+	private String fieldCode;
+    /**
+     * 字段值
+     */
+    @NotBlank(message = "字段值不能为空")
+	private String fieldValue;
 
 }
