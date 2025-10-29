@@ -57,7 +57,7 @@ public class TemplateController {
      * 保存模板
      */
     @PostMapping("/saveTemplateForm")
-    public Result saveTemplateForm(@RequestBody TemplateParam param) {
+    public Result saveTemplateForm(@RequestBody @Validated TemplateParam param) {
         templateFacade.saveTemplateFormNew(param);
         return Result.success();
     }

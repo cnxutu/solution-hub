@@ -8,6 +8,7 @@ import lombok.Data;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -59,4 +60,48 @@ public class TemplateFieldVO {
 
     /** 字段选项列表（当 optionSource=1 或 2 时使用） */
     private List<TemplateFieldOptionVO> options;
+
+
+    // ----------------------- v2 版本新增字段内容 -----------------------
+
+    /**
+     * 输入子类型，如 phone、id_card、email、credit_code 等
+     */
+    private String inputSubType;
+
+    /**
+     * 绑定的外部选项 URL（当 optionSource = 3 时使用）
+     */
+    private String optionUrl;
+
+    /**
+     * 最小长度
+     */
+    private Integer minLength;
+
+    /**
+     * 最大长度
+     */
+    private Integer maxLength;
+
+    /**
+     * 最小值（针对数值型字段）
+     */
+    private BigDecimal minValue;
+
+    /**
+     * 最大值（针对数值型字段）
+     */
+    private BigDecimal maxValue;
+
+    /**
+     * 正则表达式（用于自定义校验）
+     */
+    private String pattern;
+
+    /**
+     * 小数位数（针对数值型字段）
+     */
+    private Integer decimalScale;
+
 }

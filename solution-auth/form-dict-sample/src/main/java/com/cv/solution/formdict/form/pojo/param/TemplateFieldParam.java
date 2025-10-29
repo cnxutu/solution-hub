@@ -8,7 +8,9 @@ import lombok.Data;
 
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
+import java.math.BigDecimal;
 import java.util.List;
+import java.util.Map;
 
 /**   
  * 模板字段表 新增接口入参
@@ -41,13 +43,14 @@ public class TemplateFieldParam {
 	private String fieldName;
     /**
      * 字段类型，如 text, number, select, date
+     * @see com.cv.solution.formdict.common.enums.TemplateFieldTypeEnum
      */
     @NotBlank(message = "字段类型，如 text, number, select, date不能为空")
 	private String fieldType;
     /**
-     * 选项来源：1=字典(dict_code)，2=模板专属选项，3=自由输入
+     * 选项来源：1=字典(dict_code)，2=模板专属选项，3=接口调用获取参数
      */
-    @NotNull(message = "选项来源：1=字典(dict_code)，2=模板专属选项，3=自由输入不能为空")
+    @NotNull(message = "选项来源：1=字典(dict_code)，2=模板专属选项，3=接口调用获取参数")
 	private Integer optionSource;
     /**
      * 绑定的字典类型编码（option_source=1时使用）
@@ -55,7 +58,7 @@ public class TemplateFieldParam {
 	private String dictCode;
 
     /**
-     * 绑定的字典类型编码（option_source=2时使用）不能为空
+     * 绑定的自定义模板项（option_source=2时使用）不能为空
      */
     private List<TemplateFieldOptionParam> templateFieldOptions;
 
@@ -82,7 +85,61 @@ public class TemplateFieldParam {
     /**
      * 备注
      */
-    @NotBlank(message = "备注不能为空")
 	private String remark;
+
+    // ----------------------- v2 版本新增字段内容 -----------------------
+
+    /**
+     * 输入子类型，如 phone、id_card、email、credit_code 等
+     */
+    private String inputSubType;
+
+    /**
+     * 选项接口 URL（当 option_source=3 时使用）
+     */
+    private String optionApi;
+
+    /**
+     * 接口请求方式：GET / POST
+     */
+    private String optionApiMethod;
+
+    /**
+     * 这里直接用 Map 接收 JSON 对象
+     * 接口参数（支持模板变量）
+     * 例如：{"hospitalId": "${context.hospitalId}", "status": "ENABLED"}
+     */
+    private Map<String, Object> optionApiParams;
+
+    /**
+     * 最小长度
+     */
+    private Integer minLength;
+
+    /**
+     * 最大长度
+     */
+    private Integer maxLength;
+
+    /**
+     * 最小值（针对数值型字段）
+     */
+    private BigDecimal minValue;
+
+    /**
+     * 最大值（针对数值型字段）
+     */
+    private BigDecimal maxValue;
+
+    /**
+     * 正则表达式（用于自定义校验）
+     */
+    private String pattern;
+
+    /**
+     * 小数位数（针对数值型字段）
+     */
+    private Integer decimalScale;
+
 
 }

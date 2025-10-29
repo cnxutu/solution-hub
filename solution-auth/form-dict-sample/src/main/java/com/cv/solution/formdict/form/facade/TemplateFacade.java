@@ -227,8 +227,16 @@ public class TemplateFacade {
                         .eq(TemplateFieldPO::getIsDeleted, 0)
         );
 
-        Map<String, FormFieldDataParam> fieldDataMap = param.getFieldValueParamList().stream()
-                .collect(Collectors.toMap(FormFieldDataParam::getFieldCode, Function.identity()));
+        Map<String, FormFieldDataParam> fieldDataMap = param.getFieldValues().entrySet().stream()
+                .collect(Collectors.toMap(
+                        Map.Entry::getKey,
+                        e -> {
+                            FormFieldDataParam dataParam = new FormFieldDataParam();
+                            dataParam.setFieldCode(e.getKey());
+                            dataParam.setFieldValue(e.getValue());
+                            return dataParam;
+                        }
+                ));
 
         // 2️⃣ 校验录入数据
         TemplateValidatorUtils.validateFieldData(templateFields, fieldDataMap);
@@ -236,14 +244,10 @@ public class TemplateFacade {
         // 3️⃣ 构建 tpl_template_data PO
         List<TemplateDataPO> dataList = templateFields.stream()
                 .map(field -> {
-                    FormFieldDataParam dataParam = fieldDataMap.get(field.getFieldCode());
                     TemplateDataPO data = new TemplateDataPO();
                     data.setTemplateId(param.getTemplateId());
                     data.setRecordId(param.getRecordId());
-                    data.setFieldCode(field.getFieldCode());
-                    if (dataParam != null && dataParam.getFieldValue() != null) {
-                        data.setFieldValue(dataParam.getFieldValue().toString());
-                    }
+                    data.setFieldValues(param.getFieldValues());
                     return data;
                 })
                 .collect(Collectors.toList());

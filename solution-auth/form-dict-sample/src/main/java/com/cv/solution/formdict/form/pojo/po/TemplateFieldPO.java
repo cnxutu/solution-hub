@@ -4,6 +4,7 @@
  */
 package com.cv.solution.formdict.form.pojo.po;
 
+import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.cv.boot.mybatisplus.pojo.model.BasePO;
 import lombok.Data;
@@ -13,8 +14,11 @@ import org.springframework.format.annotation.DateTimeFormat;
 import java.io.Serializable;
 import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
+
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Map;
 
 /**   
  * 模板字段表 实体类
@@ -82,5 +86,68 @@ public class TemplateFieldPO extends BasePO  implements Serializable {
      * 备注
      */
 	private String remark;
+
+    // ----------------------- v2 版本新增字段内容 -----------------------
+
+    /**
+     * 输入子类型，如 phone、id_card、email、credit_code 等
+     */
+    @TableField("input_sub_type")
+    private String inputSubType;
+
+    /**
+     * 选项接口 URL（当 option_source=3 时使用）
+     */
+    @TableField("option_api")
+    private String optionApi;
+
+    /**
+     * 接口请求方式：GET / POST
+     */
+    @TableField("option_api_method")
+    private String optionApiMethod;
+
+    /**
+     * 接口参数（支持模板变量）
+     * 例如：{"hospitalId": "${context.hospitalId}", "status": "ENABLED"}
+     */
+    @TableField(value = "option_api_params", typeHandler = JacksonTypeHandler.class)
+    private Map<String, Object> optionApiParams;
+
+    /**
+     * 最小长度
+     */
+    @TableField("min_length")
+    private Integer minLength;
+
+    /**
+     * 最大长度
+     */
+    @TableField("max_length")
+    private Integer maxLength;
+
+    /**
+     * 最小值（针对数值型字段）
+     */
+    @TableField("min_value")
+    private BigDecimal minValue;
+
+    /**
+     * 最大值（针对数值型字段）
+     */
+    @TableField("max_value")
+    private BigDecimal maxValue;
+
+    /**
+     * 正则表达式（用于自定义校验）
+     */
+    @TableField("pattern")
+    private String pattern;
+
+    /**
+     * 小数位数（针对数值型字段）
+     */
+    @TableField("decimal_scale")
+    private Integer decimalScale;
 
 }

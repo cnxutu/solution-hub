@@ -4,6 +4,7 @@
  */
 package com.cv.solution.formdict.form.pojo.po;
 
+import com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import com.cv.boot.mybatisplus.pojo.model.BasePO;
 import lombok.Data;
@@ -15,6 +16,7 @@ import com.baomidou.mybatisplus.annotation.TableField;
 import com.baomidou.mybatisplus.annotation.TableName;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Map;
 
 /**   
  * 模板录入数据表 实体类
@@ -40,15 +42,8 @@ public class TemplateDataPO extends BasePO  implements Serializable {
      */
     @TableField("record_id")
 	private Long recordId;
-    /**
-     * 字段编码
-     */
-    @TableField("field_code")
-	private String fieldCode;
-    /**
-     * 字段值
-     */
-    @TableField("field_value")
-	private String fieldValue;
+
+    @TableField(value = "field_values", typeHandler = JacksonTypeHandler.class)
+    private Map<String, Object> fieldValues;
 
 }

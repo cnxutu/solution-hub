@@ -47,7 +47,6 @@ public class TemplateParam {
     /**
      * 备注
      */
-    @NotBlank(message = "备注不能为空")
 	private String remark;
 
     private List<TemplateFieldParam> templateFields;
