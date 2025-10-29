@@ -5,11 +5,10 @@
 package com.cv.solution.formdict.form.pojo.param;
 
 import lombok.Data;
-import com.fasterxml.jackson.annotation.JsonFormat;
+
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.util.List;
 
 /**   
  * 模板字段表 新增接口入参
@@ -18,7 +17,7 @@ import java.time.LocalDateTime;
  * @date 2025-10-28 19:44:00
  */
 @Data
-public class TemplateFieldAddOrEditParam {
+public class TemplateFieldParam {
 
     /**
      * 主键 id
@@ -53,8 +52,13 @@ public class TemplateFieldAddOrEditParam {
     /**
      * 绑定的字典类型编码（option_source=1时使用）
      */
-    @NotBlank(message = "绑定的字典类型编码（option_source=1时使用）不能为空")
 	private String dictCode;
+
+    /**
+     * 绑定的字典类型编码（option_source=2时使用）不能为空
+     */
+    private List<TemplateFieldOptionParam> templateFieldOptions;
+
     /**
      * 是否必填 0=否 1=是
      */

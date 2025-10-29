@@ -5,11 +5,10 @@
 package com.cv.solution.formdict.form.pojo.param;
 
 import lombok.Data;
-import com.fasterxml.jackson.annotation.JsonFormat;
+
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.util.List;
 
 /**   
  * 模板表 新增接口入参
@@ -18,7 +17,7 @@ import java.time.LocalDateTime;
  * @date 2025-10-28 19:44:00
  */
 @Data
-public class TemplateAddOrEditParam {
+public class TemplateParam {
 
     /**
      * 主键 id
@@ -50,5 +49,7 @@ public class TemplateAddOrEditParam {
      */
     @NotBlank(message = "备注不能为空")
 	private String remark;
+
+    private List<TemplateFieldParam> templateFields;
 
 }

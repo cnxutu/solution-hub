@@ -5,34 +5,26 @@
 package com.cv.solution.formdict.form.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cv.boot.common.enums.ErrorCodeEnum;
 import com.cv.boot.common.enums.DeletedEnum;
 import com.cv.boot.common.exception.BizException;
 import com.cv.solution.formdict.form.pojo.po.TemplateFieldPO;
-import com.cv.solution.formdict.form.pojo.param.TemplateFieldAddOrEditParam;
+import com.cv.solution.formdict.form.pojo.param.TemplateFieldParam;
 import com.cv.solution.formdict.form.pojo.query.TemplateFieldPageQuery;
 import com.cv.solution.formdict.form.pojo.vo.TemplateFieldPageVO;
 import com.cv.solution.formdict.form.pojo.vo.TemplateFieldVO;
 import com.cv.solution.formdict.form.mapper.TemplateFieldMapper;
-import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.cv.solution.formdict.form.service.ITemplateFieldService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.cv.boot.common.pojo.query.DeletedByIdListQuery;
 import com.cv.boot.mybatisplus.pojo.vo.PageInfoVO;
-import com.cv.boot.web.response.Result;
 import com.cv.boot.mybatisplus.util.PageUtils;
-import cn.hutool.core.util.StrUtil;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import cn.hutool.core.collection.CollUtil;
 import lombok.extern.slf4j.Slf4j;
 import javax.annotation.Resource;
-import java.util.ArrayList;
-import java.util.List;
 
 /**   
  * 模板字段表服务实现层
@@ -65,13 +57,13 @@ public class TemplateFieldServiceImpl extends ServiceImpl<TemplateFieldMapper, T
     /**
     * 新增
     *
-    * @param param {@link TemplateFieldAddOrEditParam}
+    * @param param {@link TemplateFieldParam}
     * @author xutu
     * @date 2025-10-28 19:44:00
     */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Long add(TemplateFieldAddOrEditParam param) {
+    public Long add(TemplateFieldParam param) {
         // 使用 hutool BeanUtil 进行 Param -> PO 转换
         TemplateFieldPO po = new TemplateFieldPO();
         BeanUtil.copyProperties(param, po);
@@ -85,13 +77,13 @@ public class TemplateFieldServiceImpl extends ServiceImpl<TemplateFieldMapper, T
     /**
     * 编辑
     *
-    * @param param {@link TemplateFieldAddOrEditParam}
+    * @param param {@link TemplateFieldParam}
     * @author xutu
     * @date 2025-10-28 19:44:00
     */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void edit(TemplateFieldAddOrEditParam param) {
+    public void edit(TemplateFieldParam param) {
         // 使用 hutool BeanUtil 进行 Param -> PO 转换
         TemplateFieldPO po = new TemplateFieldPO();
         BeanUtil.copyProperties(param, po);

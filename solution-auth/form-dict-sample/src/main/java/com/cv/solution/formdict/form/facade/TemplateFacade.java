@@ -3,12 +3,17 @@ package com.cv.solution.formdict.form.facade;
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.cv.boot.common.exception.BizException;
 import com.cv.solution.formdict.dict.pojo.po.SysDictItemPO;
 import com.cv.solution.formdict.dict.service.ISysDictItemService;
+import com.cv.solution.formdict.form.pojo.param.TemplateFieldOptionParam;
+import com.cv.solution.formdict.form.pojo.param.TemplateFieldParam;
+import com.cv.solution.formdict.form.pojo.param.TemplateParam;
 import com.cv.solution.formdict.form.pojo.po.*;
 import com.cv.solution.formdict.form.pojo.vo.*;
 import com.cv.solution.formdict.form.service.*;
+import com.google.common.collect.ImmutableMap;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
@@ -19,6 +24,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 /**
  * @author: xutu
@@ -37,7 +43,7 @@ public class TemplateFacade {
     /**
      * 根据模板编码获取模板及其字段定义（含选项）
      */
-    public TemplateVO getTemplateWithFields(String templateCode) {
+    public TemplateVO getFullTemplateWithTemplateCode(String templateCode) {
         // 1. 查询模板
         LambdaQueryWrapper<TemplatePO> templateQueryWrapper = new LambdaQueryWrapper<>();
         templateQueryWrapper.eq(TemplatePO::getTemplateCode, templateCode);
@@ -109,4 +115,97 @@ public class TemplateFacade {
         vo.setFields(fields);
         return vo;
     }
+
+    /**
+     * 基础保存模板方法
+     *
+     * @param param
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void saveTemplateData(TemplateParam param) {
+
+        // 1️⃣ 保存模板主表信息
+        TemplatePO template = new TemplatePO();
+        BeanUtil.copyProperties(param, template);
+        templateService.save(template);
+
+        // 2️⃣ 保存字段信息
+        if (CollectionUtils.isNotEmpty(param.getTemplateFields())) {
+            for (TemplateFieldParam fieldParam : param.getTemplateFields()) {
+                TemplateFieldPO field = new TemplateFieldPO();
+                BeanUtil.copyProperties(fieldParam, field);
+                field.setTemplateId(template.getId());
+                fieldService.save(field);
+
+                // 3️⃣ 保存选项信息（如果有）
+                if (CollectionUtils.isNotEmpty(fieldParam.getTemplateFieldOptions())) {
+                    for (TemplateFieldOptionParam optionParam : fieldParam.getTemplateFieldOptions()) {
+                        TemplateFieldOptionPO option = new TemplateFieldOptionPO();
+                        BeanUtil.copyProperties(optionParam, option);
+                        option.setFieldId(field.getId());
+                        optionService.save(option);
+                    }
+                }
+            }
+        }
+    }
+
+    /**
+     * 基础保存模板方法（改良版）
+     *
+     * @param param
+     */
+    @Transactional(rollbackFor = Exception.class)
+    public void saveTemplateDataNew(TemplateParam param) {
+        // 1️⃣ 保存模板主表
+        TemplatePO template = new TemplatePO();
+        BeanUtil.copyProperties(param, template);
+        templateService.save(template);
+
+        if (CollectionUtils.isEmpty(param.getTemplateFields())) {
+            return;
+        }
+
+        // 2️⃣ 构建字段列表（使用 stream map + BeanUtil 可以兼顾拷贝 + 其它字段的赋值等额外操作 更灵活）
+        List<TemplateFieldPO> fieldList = param.getTemplateFields().stream()
+                .map(fieldParam -> {
+                    TemplateFieldPO field = new TemplateFieldPO();
+                    BeanUtil.copyProperties(fieldParam, field);
+                    field.setTemplateId(template.getId());
+                    return field;
+                })
+                .collect(Collectors.toList());
+
+        // 2️⃣.1 批量保存字段
+        fieldService.saveBatch(fieldList);
+
+        // 2️⃣.2 构建「字段临时映射」用于回填（fieldParam → fieldPO）
+        ImmutableMap<TemplateFieldParam, TemplateFieldPO> fieldMapping =
+                ImmutableMap.copyOf(IntStream.range(0, fieldList.size())
+                        .boxed() // 装箱操作，把基本类型 int 转成 Integer 对象流，否则下面 map 的 key 无法用基本类型
+                        .collect(Collectors.toMap(
+                                i -> param.getTemplateFields().get(i),
+                                fieldList::get
+                        ))); // 转换成常规 map，key 为 i，value 为 fieldPO
+
+        // 3️⃣ 构建所有选项并批量保存
+        List<TemplateFieldOptionPO> optionList = param.getTemplateFields().stream()
+                .filter(f -> CollectionUtils.isNotEmpty(f.getTemplateFieldOptions()))
+                .flatMap(f -> // 使用 flatmap，把每个字段 f 内部的选项列表 List<TemplateFieldOptionParam> 的流 “打平” 成一个单层的流。
+
+                        f.getTemplateFieldOptions().stream().map(opt -> {
+                            TemplateFieldOptionPO option = new TemplateFieldOptionPO();
+                            BeanUtil.copyProperties(opt, option);
+                            // 从映射表中取出 fieldId
+                            option.setFieldId(fieldMapping.get(f).getId());
+                            return option;
+                        })).collect(Collectors.toList()
+                );
+
+        if (CollectionUtils.isNotEmpty(optionList)) {
+            optionService.saveBatch(optionList);
+        }
+    }
+
+
 }

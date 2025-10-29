@@ -5,34 +5,26 @@
 package com.cv.solution.formdict.form.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cv.boot.common.enums.ErrorCodeEnum;
 import com.cv.boot.common.enums.DeletedEnum;
 import com.cv.boot.common.exception.BizException;
 import com.cv.solution.formdict.form.pojo.po.TemplateFieldOptionPO;
-import com.cv.solution.formdict.form.pojo.param.TemplateFieldOptionAddOrEditParam;
+import com.cv.solution.formdict.form.pojo.param.TemplateFieldOptionParam;
 import com.cv.solution.formdict.form.pojo.query.TemplateFieldOptionPageQuery;
 import com.cv.solution.formdict.form.pojo.vo.TemplateFieldOptionPageVO;
 import com.cv.solution.formdict.form.pojo.vo.TemplateFieldOptionVO;
 import com.cv.solution.formdict.form.mapper.TemplateFieldOptionMapper;
-import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.cv.solution.formdict.form.service.ITemplateFieldOptionService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.cv.boot.common.pojo.query.DeletedByIdListQuery;
 import com.cv.boot.mybatisplus.pojo.vo.PageInfoVO;
-import com.cv.boot.web.response.Result;
 import com.cv.boot.mybatisplus.util.PageUtils;
-import cn.hutool.core.util.StrUtil;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import cn.hutool.core.collection.CollUtil;
 import lombok.extern.slf4j.Slf4j;
 import javax.annotation.Resource;
-import java.util.ArrayList;
-import java.util.List;
 
 /**   
  * 模板字段专属可选项表服务实现层
@@ -65,13 +57,13 @@ public class TemplateFieldOptionServiceImpl extends ServiceImpl<TemplateFieldOpt
     /**
     * 新增
     *
-    * @param param {@link TemplateFieldOptionAddOrEditParam}
+    * @param param {@link TemplateFieldOptionParam}
     * @author xutu
     * @date 2025-10-28 19:44:00
     */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Long add(TemplateFieldOptionAddOrEditParam param) {
+    public Long add(TemplateFieldOptionParam param) {
         // 使用 hutool BeanUtil 进行 Param -> PO 转换
         TemplateFieldOptionPO po = new TemplateFieldOptionPO();
         BeanUtil.copyProperties(param, po);
@@ -85,13 +77,13 @@ public class TemplateFieldOptionServiceImpl extends ServiceImpl<TemplateFieldOpt
     /**
     * 编辑
     *
-    * @param param {@link TemplateFieldOptionAddOrEditParam}
+    * @param param {@link TemplateFieldOptionParam}
     * @author xutu
     * @date 2025-10-28 19:44:00
     */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void edit(TemplateFieldOptionAddOrEditParam param) {
+    public void edit(TemplateFieldOptionParam param) {
         // 使用 hutool BeanUtil 进行 Param -> PO 转换
         TemplateFieldOptionPO po = new TemplateFieldOptionPO();
         BeanUtil.copyProperties(param, po);

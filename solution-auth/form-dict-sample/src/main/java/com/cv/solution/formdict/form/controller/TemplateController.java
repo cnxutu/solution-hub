@@ -5,11 +5,8 @@
 package com.cv.solution.formdict.form.controller;
 
 import com.cv.boot.common.enums.ErrorCodeEnum;
-import com.cv.boot.common.enums.DeletedEnum;
-import com.cv.boot.common.exception.BizException;
 import com.cv.solution.formdict.form.facade.TemplateFacade;
-import com.cv.solution.formdict.form.pojo.po.TemplatePO;
-import com.cv.solution.formdict.form.pojo.param.TemplateAddOrEditParam;
+import com.cv.solution.formdict.form.pojo.param.TemplateParam;
 import com.cv.solution.formdict.form.pojo.query.TemplatePageQuery;
 import com.cv.solution.formdict.form.pojo.vo.TemplatePageVO;
 import com.cv.solution.formdict.form.pojo.vo.TemplateVO;
@@ -27,10 +24,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.RequestParam;
-import javax.annotation.Resource;
 
-import java.util.List;
+import javax.annotation.Resource;
 
 /**
  * 模板表API接口层
@@ -52,9 +47,18 @@ public class TemplateController {
     /**
      * 根据模板编码获取模板定义（含字段与选项）
      */
-    @GetMapping("/{code}")
-    public Result<TemplateVO> getTemplate(@PathVariable String code) {
-        return Result.success(templateFacade.getTemplateWithFields(code));
+    @GetMapping("/fullTemplate/{code}")
+    public Result<TemplateVO> getFullTemplate(@PathVariable String code) {
+        return Result.success(templateFacade.getFullTemplateWithTemplateCode(code));
+    }
+
+    /**
+     * 保存模板
+     */
+    @PostMapping("/saveTemplateData")
+    public Result saveTemplateData(@RequestBody TemplateParam param) {
+        templateFacade.saveTemplateDataNew(param);
+        return Result.success();
     }
 
     /**
@@ -72,7 +76,7 @@ public class TemplateController {
     }
 
     /**
-     * @param param {@link TemplateAddOrEditParam}
+     * @param param {@link TemplateParam}
      * @return {@link Result<Long>}
      * @author xutu
      * @date 2025-10-28 19:44:00
@@ -80,13 +84,13 @@ public class TemplateController {
      * @menu 模板表管理
      **/
     @PostMapping("/add")
-    public Result<Long> add(@RequestBody @Validated TemplateAddOrEditParam param) {
+    public Result<Long> add(@RequestBody @Validated TemplateParam param) {
         Long id = templateService.add(param);
         return Result.success(id);
     }
 
     /**
-     * @param param {@link TemplateAddOrEditParam}
+     * @param param {@link TemplateParam}
      * @return {@link Result<Long>}
      * @author xutu
      * @date 2025-10-28 19:44:00
@@ -94,7 +98,7 @@ public class TemplateController {
      * @menu 模板表管理
      **/
     @PostMapping("/edit")
-    public Result<Long> edit(@RequestBody @Validated TemplateAddOrEditParam param) {
+    public Result<Long> edit(@RequestBody @Validated TemplateParam param) {
         templateService.edit(param);
         return Result.success(param.getId());
     }

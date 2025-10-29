@@ -14,7 +14,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 @MapperScan( {
         "com.cv.solution.formdict.dict.mapper",
-        "com.cv.kb.auth.user.mapper"
+        "com.cv.solution.formdict.form.mapper"
 })
 public class FormDictApplication {
     public static void main(String[] args) {
