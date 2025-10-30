@@ -78,7 +78,7 @@ public class SysDictItemServiceImpl extends ServiceImpl<SysDictItemMapper, SysDi
     @Transactional(rollbackFor = Exception.class)
     public void add(List<SysDictItemParam> paramList) {
         // 1、统一判断 字典编码 是否存在
-        Set<String> dictCodeSet = paramList.stream().map(SysDictItemParam::getDictCode).distinct().collect(Collectors.toSet());
+        Set<String> dictCodeSet = paramList.stream().map(SysDictItemParam::getDictCode).collect(Collectors.toSet());
         LambdaQueryWrapper<SysDictTypePO> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.in(SysDictTypePO::getDictCode, dictCodeSet);
         List<SysDictTypePO> dictTypeList = sysDictTypeService.list(queryWrapper);
