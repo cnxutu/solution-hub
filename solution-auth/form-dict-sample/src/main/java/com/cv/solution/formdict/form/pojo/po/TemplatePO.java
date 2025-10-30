@@ -44,7 +44,7 @@ public class TemplatePO extends BasePO  implements Serializable {
      * 模板类型，可用于分类
      */
     @TableField("template_type")
-	private String templateType;
+	private Integer templateType;
     /**
      * 状态 1=启用 0=停用
      */

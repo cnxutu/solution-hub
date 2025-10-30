@@ -2,7 +2,7 @@ CREATE TABLE tpl_template (
     id BIGINT PRIMARY KEY AUTO_INCREMENT COMMENT '模板ID',
     template_code VARCHAR(64) NOT NULL COMMENT '模板编码，唯一',
     template_name VARCHAR(128) NOT NULL COMMENT '模板名称',
-    template_type VARCHAR(64) DEFAULT NULL COMMENT '模板类型，可用于分类',
+    template_type TINYINT NOT NULL COMMENT '模板类型：1=活动类, 2=报名类',
     status TINYINT DEFAULT 1 COMMENT '状态 1=启用 0=停用',
     remark VARCHAR(256) DEFAULT NULL COMMENT '备注',
     create_time DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
@@ -43,7 +43,7 @@ CREATE TABLE `tpl_template_field` (
   `field_type` varchar(32) NOT NULL COMMENT '字段类型，如 text, number, select, date',
   `input_sub_type` tinyint DEFAULT NULL COMMENT '输入子类型，如 1-phone, 2-id_card, 3-email, 4-credit_code 等',
 
-  `option_source` tinyint DEFAULT '1' COMMENT '选项来源：1=字典，2=模板选项，3=接口获取',
+  `option_source` tinyint DEFAULT '1' COMMENT '选项来源：1=字典，2=模板选项，3=接口获取, 4=自由输入',
   `dict_code` varchar(64) DEFAULT NULL COMMENT '绑定字典编码（option_source=1时）',
   `option_api` varchar(256) DEFAULT NULL COMMENT '选项接口URL（option_source=3时使用）',
   `option_api_method` varchar(10) DEFAULT 'GET' COMMENT '接口请求方式：GET/POST',

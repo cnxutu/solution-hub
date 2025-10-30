@@ -53,7 +53,6 @@ public class SysDictItemAddOrEditParam {
     /**
      * 标签颜色
      */
-    @NotBlank(message = "标签颜色不能为空")
 	private String tagColor;
     /**
      * 状态 1=启用 0=禁用
@@ -63,7 +62,6 @@ public class SysDictItemAddOrEditParam {
     /**
      * 备注
      */
-    @NotBlank(message = "备注不能为空")
 	private String remark;
 
 }

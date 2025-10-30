@@ -44,7 +44,7 @@ public class TemplateDTO implements Serializable {
      * 模板类型，可用于分类
      */
     @NotBlank(message = "模板类型，可用于分类不能为空")
-	private String templateType;
+	private Integer templateType;
     /**
      * 状态 1=启用 0=停用
      */

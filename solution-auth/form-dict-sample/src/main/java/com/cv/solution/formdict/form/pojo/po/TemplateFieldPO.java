@@ -93,7 +93,7 @@ public class TemplateFieldPO extends BasePO  implements Serializable {
      * 输入子类型，如 phone、id_card、email、credit_code 等
      */
     @TableField("input_sub_type")
-    private String inputSubType;
+    private Integer inputSubType;
 
     /**
      * 选项接口 URL（当 option_source=3 时使用）

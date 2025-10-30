@@ -31,7 +31,7 @@ public class TemplateVO {
     private String templateName;
 
     /** 模板类型，可用于分类 */
-    private String templateType;
+    private Integer templateType;
 
     /** 状态：1=启用，0=停用 */
     private Integer status;

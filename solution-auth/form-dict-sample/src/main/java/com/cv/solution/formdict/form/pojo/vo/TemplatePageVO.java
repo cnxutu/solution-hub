@@ -36,7 +36,7 @@ public class TemplatePageVO {
     /**
      * 模板类型，可用于分类
      */
-	private String templateType;
+	private Integer templateType;
     /**
      * 状态 1=启用 0=停用
      */

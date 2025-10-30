@@ -25,7 +25,7 @@
         <if test="query.dictCode != null and query.dictCode != '' ">
             and dict_code = #{query.dictCode}
         </if>
-        order by create_time desc
+        order by item_sort, create_time asc
 
     </select>
 

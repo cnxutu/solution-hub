@@ -1,10 +1,10 @@
-package com.cv.solution.formdict.common.enums;
+package com.cv.solution.formdict.form.common.enums;
 
 /**
  * @author: xutu
  * @since: 2025/10/29 16:28
  */
-public enum TemplateFieldTypeEnum {
+public enum FieldTypeEnum {
     TEXT("TEXT", "单行文本"),
     TEXTAREA("TEXTAREA", "多行文本"),
     NUMBER("NUMBER", "数字"),
@@ -23,13 +23,13 @@ public enum TemplateFieldTypeEnum {
     private final String code;
     private final String desc;
 
-    TemplateFieldTypeEnum(String code, String desc) {
+    FieldTypeEnum(String code, String desc) {
         this.code = code;
         this.desc = desc;
     }
 
-    public static TemplateFieldTypeEnum getByCode(String code) {
-        for (TemplateFieldTypeEnum value : values()) {
+    public static FieldTypeEnum getByCode(String code) {
+        for (FieldTypeEnum value : values()) {
             if (value.code.equals(code)) {
                 return value;
             }

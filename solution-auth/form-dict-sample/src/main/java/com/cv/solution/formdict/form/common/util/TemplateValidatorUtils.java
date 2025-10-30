@@ -1,7 +1,7 @@
-package com.cv.solution.formdict.common.util;
+package com.cv.solution.formdict.form.common.util;
 
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
-import com.cv.solution.formdict.common.enums.TemplateFieldTypeEnum;
+import com.cv.solution.formdict.form.common.enums.FieldTypeEnum;
 import com.cv.solution.formdict.form.pojo.param.FormFieldDataParam;
 import com.cv.solution.formdict.form.pojo.param.TemplateFieldParam;
 import com.cv.solution.formdict.form.pojo.po.TemplateFieldPO;
@@ -23,7 +23,7 @@ public class TemplateValidatorUtils {
     public static void validateTemplateFieldParam(TemplateFieldParam field) {
         // 校验字段类型合法性
         try {
-            TemplateFieldTypeEnum.valueOf(field.getFieldType());
+            FieldTypeEnum.valueOf(field.getFieldType());
         } catch (IllegalArgumentException e) {
             throw new IllegalArgumentException(field.getFieldCode() + " 字段类型不合法: " + field.getFieldType());
         }
@@ -78,7 +78,7 @@ public class TemplateValidatorUtils {
 
             // 类型校验
             if (data != null && data.getFieldValue() != null) {
-                switch (TemplateFieldTypeEnum.valueOf(field.getFieldType())) {
+                switch (FieldTypeEnum.valueOf(field.getFieldType())) {
                     case NUMBER:
                         if (!(data.getFieldValue() instanceof Number)) {
                             throw new IllegalArgumentException(field.getFieldName() + " 必须是数字");

@@ -5,8 +5,7 @@ import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
 import com.cv.boot.common.exception.BizException;
-import com.cv.solution.formdict.common.enums.TemplateFieldTypeEnum;
-import com.cv.solution.formdict.common.util.TemplateValidatorUtils;
+import com.cv.solution.formdict.form.common.util.TemplateValidatorUtils;
 import com.cv.solution.formdict.dict.pojo.po.SysDictItemPO;
 import com.cv.solution.formdict.dict.service.ISysDictItemService;
 import com.cv.solution.formdict.form.pojo.param.*;
@@ -23,7 +22,6 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 

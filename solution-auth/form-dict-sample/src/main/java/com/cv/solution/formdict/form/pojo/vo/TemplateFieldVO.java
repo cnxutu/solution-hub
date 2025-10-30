@@ -67,7 +67,7 @@ public class TemplateFieldVO {
     /**
      * 输入子类型，如 phone、id_card、email、credit_code 等
      */
-    private String inputSubType;
+    private Integer inputSubType;
 
     /**
      * 绑定的外部选项 URL（当 optionSource = 3 时使用）
