@@ -56,7 +56,7 @@ public class TemplateFieldParam {
     /**
      * 选项来源：1=字典(dict_code)，2=模板专属选项，3=接口调用获取参数
      */
-    @NotNull(message = "选项来源：1=字典(dict_code)，2=模板专属选项，3=接口调用获取参数")
+    @NotNull(message = "选项来源：1=字典(dict_code)，2=模板专属选项，3=接口调用获取参数, 4=自由输入")
     private Integer optionSource;
 
     /**

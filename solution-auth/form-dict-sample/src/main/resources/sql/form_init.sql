@@ -41,7 +41,7 @@ CREATE TABLE `tpl_template_field` (
   `field_name` varchar(128) NOT NULL COMMENT '字段名称',
 
   `field_type` varchar(32) NOT NULL COMMENT '字段类型，如 text, number, select, date',
-  `input_sub_type` tinyint DEFAULT NULL COMMENT '输入子类型，如 1-phone, 2-id_card, 3-email, 4-credit_code 等',
+  `input_sub_type` tinyint DEFAULT 0 COMMENT '输入子类型，如 1-phone, 2-id_card, 3-email, 4-credit_code 等',
 
   `option_source` tinyint DEFAULT '1' COMMENT '选项来源：1=字典，2=模板选项，3=接口获取, 4=自由输入',
   `dict_code` varchar(64) DEFAULT NULL COMMENT '绑定字典编码（option_source=1时）',
