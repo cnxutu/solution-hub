@@ -5,6 +5,8 @@ package com.cv.solution.formdict.form.common.enums;
  * @since: 2025/10/30 10:16
  */
 public enum InputSubTypeEnum {
+
+    VALIDATE_NULL(0, "输入框-子类校验器-不作处理"),
     VALIDATE_PHONE(1, "输入框-子类校验器-手机号校验"),
     VALIDATE_ID_CARD(2, "输入框-子类校验器-身份证号校验"),
     VALIDATE_EMAIL(3, "输入框-子类校验器-邮箱校验"),

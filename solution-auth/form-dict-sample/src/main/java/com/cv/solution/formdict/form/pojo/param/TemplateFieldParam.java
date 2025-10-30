@@ -102,6 +102,7 @@ public class TemplateFieldParam {
 
     /**
      * 当字段选择器为 TEXT 类型时必填，输入子类型，如 phone、id_card、email、credit_code 等
+     * @see com.cv.solution.formdict.form.common.enums.InputSubTypeEnum
      */
     private Integer inputSubType;
 
