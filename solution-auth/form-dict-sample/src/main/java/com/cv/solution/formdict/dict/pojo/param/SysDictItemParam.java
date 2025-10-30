@@ -5,11 +5,9 @@
 package com.cv.solution.formdict.dict.pojo.param;
 
 import lombok.Data;
-import com.fasterxml.jackson.annotation.JsonFormat;
+
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
 
 /**   
  * 系统字典项表 新增接口入参
@@ -18,7 +16,7 @@ import java.time.LocalDateTime;
  * @date 2025-10-28 09:22:53
  */
 @Data
-public class SysDictItemAddOrEditParam {
+public class SysDictItemParam {
 
     /**
      * 主键 id

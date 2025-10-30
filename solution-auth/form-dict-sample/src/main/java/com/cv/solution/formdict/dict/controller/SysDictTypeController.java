@@ -5,10 +5,7 @@
 package com.cv.solution.formdict.dict.controller;
 
 import com.cv.boot.common.enums.ErrorCodeEnum;
-import com.cv.boot.common.enums.DeletedEnum;
-import com.cv.boot.common.exception.BizException;
-import com.cv.solution.formdict.dict.pojo.po.SysDictTypePO;
-import com.cv.solution.formdict.dict.pojo.param.SysDictTypeAddOrEditParam;
+import com.cv.solution.formdict.dict.pojo.param.SysDictTypeParam;
 import com.cv.solution.formdict.dict.pojo.query.SysDictTypePageQuery;
 import com.cv.solution.formdict.dict.pojo.vo.SysDictTypePageVO;
 import com.cv.solution.formdict.dict.pojo.vo.SysDictTypeVO;
@@ -26,10 +23,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.bind.annotation.RequestParam;
-import javax.annotation.Resource;
 
-import java.util.List;
+import javax.annotation.Resource;
 
 /**
  * 系统字典类型表API接口层
@@ -60,7 +55,7 @@ public class SysDictTypeController {
     }
 
     /**
-     * @param param {@link SysDictTypeAddOrEditParam}
+     * @param param {@link SysDictTypeParam}
      * @return {@link Result<Long>}
      * @author xutu
      * @date 2025-10-28 09:22:53
@@ -68,13 +63,13 @@ public class SysDictTypeController {
      * @menu 系统字典类型表管理
      **/
     @PostMapping("/add")
-    public Result<Long> add(@RequestBody @Validated SysDictTypeAddOrEditParam param) {
+    public Result<Long> add(@RequestBody @Validated SysDictTypeParam param) {
         Long id = sysDictTypeService.add(param);
         return Result.success(id);
     }
 
     /**
-     * @param param {@link SysDictTypeAddOrEditParam}
+     * @param param {@link SysDictTypeParam}
      * @return {@link Result<Long>}
      * @author xutu
      * @date 2025-10-28 09:22:53
@@ -82,7 +77,7 @@ public class SysDictTypeController {
      * @menu 系统字典类型表管理
      **/
     @PostMapping("/edit")
-    public Result<Long> edit(@RequestBody @Validated SysDictTypeAddOrEditParam param) {
+    public Result<Long> edit(@RequestBody @Validated SysDictTypeParam param) {
         sysDictTypeService.edit(param);
         return Result.success(param.getId());
     }

@@ -14,27 +14,23 @@ import com.cv.boot.common.enums.DeletedEnum;
 import com.cv.boot.common.exception.BizException;
 import com.cv.solution.formdict.dict.pojo.po.SysDictItemPO;
 import com.cv.solution.formdict.dict.pojo.po.SysDictTypePO;
-import com.cv.solution.formdict.dict.pojo.param.SysDictTypeAddOrEditParam;
+import com.cv.solution.formdict.dict.pojo.param.SysDictTypeParam;
 import com.cv.solution.formdict.dict.pojo.query.SysDictTypePageQuery;
 import com.cv.solution.formdict.dict.pojo.vo.SysDictTypePageVO;
 import com.cv.solution.formdict.dict.pojo.vo.SysDictTypeVO;
 import com.cv.solution.formdict.dict.mapper.SysDictTypeMapper;
-import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.cv.solution.formdict.dict.service.ISysDictItemService;
 import com.cv.solution.formdict.dict.service.ISysDictTypeService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.cv.boot.common.pojo.query.DeletedByIdListQuery;
 import com.cv.boot.mybatisplus.pojo.vo.PageInfoVO;
-import com.cv.boot.web.response.Result;
 import com.cv.boot.mybatisplus.util.PageUtils;
-import cn.hutool.core.util.StrUtil;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import cn.hutool.core.collection.CollUtil;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Resource;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -72,13 +68,13 @@ public class SysDictTypeServiceImpl extends ServiceImpl<SysDictTypeMapper, SysDi
     /**
      * 新增
      *
-     * @param param {@link SysDictTypeAddOrEditParam}
+     * @param param {@link SysDictTypeParam}
      * @author xutu
      * @date 2025-10-28 09:22:53
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Long add(SysDictTypeAddOrEditParam param) {
+    public Long add(SysDictTypeParam param) {
         // 1、若为新增操作，查询 DICT_CODE 是否已存在
         QueryWrapper<SysDictTypePO> eq = new QueryWrapper<SysDictTypePO>()
                 .eq("dict_code", param.getDictCode())
@@ -99,13 +95,13 @@ public class SysDictTypeServiceImpl extends ServiceImpl<SysDictTypeMapper, SysDi
     /**
      * 编辑
      *
-     * @param param {@link SysDictTypeAddOrEditParam}
+     * @param param {@link SysDictTypeParam}
      * @author xutu
      * @date 2025-10-28 09:22:53
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void edit(SysDictTypeAddOrEditParam param) {
+    public void edit(SysDictTypeParam param) {
         // 使用 hutool BeanUtil 进行 Param -> PO 转换
         SysDictTypePO po = new SysDictTypePO();
         BeanUtil.copyProperties(param, po);

@@ -6,7 +6,7 @@ package com.cv.solution.formdict.dict.service;
 
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.cv.solution.formdict.dict.pojo.po.SysDictItemPO;
-import com.cv.solution.formdict.dict.pojo.param.SysDictItemAddOrEditParam;
+import com.cv.solution.formdict.dict.pojo.param.SysDictItemParam;
 import com.cv.solution.formdict.dict.pojo.query.SysDictItemPageQuery;
 import com.cv.solution.formdict.dict.pojo.vo.SysDictItemPageVO;
 import com.cv.solution.formdict.dict.pojo.vo.SysDictItemVO;
@@ -14,6 +14,7 @@ import com.cv.boot.common.pojo.query.DeletedByIdListQuery;
 import com.cv.boot.mybatisplus.pojo.vo.PageInfoVO;
 
 import java.util.List;
+
 /**
  * 系统字典项表 服务接口
  *
@@ -35,21 +36,21 @@ public interface ISysDictItemService extends IService<SysDictItemPO> {
     /**
      * 新增
      *
-     * @param param {@link SysDictItemAddOrEditParam}
+     * @param paramList {@link SysDictItemParam}
      * @return id
      * @author xutu
      * @date 2025-10-28 09:22:53
      */
-    Long add(SysDictItemAddOrEditParam param);
+    void add(List<SysDictItemParam> paramList);
 
     /**
      * 编辑
      *
-     * @param param {@link SysDictItemAddOrEditParam}
+     * @param param {@link SysDictItemParam}
      * @author xutu
      * @date 2025-10-28 09:22:53
      */
-    void edit(SysDictItemAddOrEditParam param);
+    void edit(SysDictItemParam param);
 
     /**
      * 删除

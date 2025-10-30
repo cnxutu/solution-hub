@@ -6,7 +6,6 @@ package com.cv.solution.formdict.dict.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import cn.hutool.core.util.ObjectUtil;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -14,30 +13,27 @@ import com.cv.boot.common.enums.ErrorCodeEnum;
 import com.cv.boot.common.enums.DeletedEnum;
 import com.cv.boot.common.exception.BizException;
 import com.cv.solution.formdict.dict.pojo.po.SysDictItemPO;
-import com.cv.solution.formdict.dict.pojo.param.SysDictItemAddOrEditParam;
+import com.cv.solution.formdict.dict.pojo.param.SysDictItemParam;
 import com.cv.solution.formdict.dict.pojo.po.SysDictTypePO;
 import com.cv.solution.formdict.dict.pojo.query.SysDictItemPageQuery;
 import com.cv.solution.formdict.dict.pojo.vo.SysDictItemPageVO;
 import com.cv.solution.formdict.dict.pojo.vo.SysDictItemVO;
 import com.cv.solution.formdict.dict.mapper.SysDictItemMapper;
-import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.cv.solution.formdict.dict.service.ISysDictItemService;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.cv.boot.common.pojo.query.DeletedByIdListQuery;
 import com.cv.boot.mybatisplus.pojo.vo.PageInfoVO;
-import com.cv.boot.web.response.Result;
 import com.cv.boot.mybatisplus.util.PageUtils;
-import cn.hutool.core.util.StrUtil;
 import com.cv.solution.formdict.dict.service.ISysDictTypeService;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import cn.hutool.core.collection.CollUtil;
 import lombok.extern.slf4j.Slf4j;
 
 import javax.annotation.Resource;
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * 系统字典项表服务实现层
@@ -74,40 +70,37 @@ public class SysDictItemServiceImpl extends ServiceImpl<SysDictItemMapper, SysDi
     /**
      * 新增
      *
-     * @param param {@link SysDictItemAddOrEditParam}
+     * @param paramList {@link SysDictItemParam}
      * @author xutu
      * @date 2025-10-28 09:22:53
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public Long add(SysDictItemAddOrEditParam param) {
-        // 1、判断 字典编码 是否存在
+    public void add(List<SysDictItemParam> paramList) {
+        // 1、统一判断 字典编码 是否存在
+        Set<String> dictCodeSet = paramList.stream().map(SysDictItemParam::getDictCode).distinct().collect(Collectors.toSet());
         LambdaQueryWrapper<SysDictTypePO> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(SysDictTypePO::getDictCode, param.getDictCode());
-        SysDictTypePO one = sysDictTypeService.getOne(queryWrapper);
-        if (ObjectUtil.isNull(one)) {
+        queryWrapper.in(SysDictTypePO::getDictCode, dictCodeSet);
+        List<SysDictTypePO> dictTypeList = sysDictTypeService.list(queryWrapper);
+        Set<String> foundDictCodes = dictTypeList.stream().map(SysDictTypePO::getDictCode).collect(Collectors.toSet());
+        // 判断是否有缺失的 dictCode
+        if (!foundDictCodes.containsAll(dictCodeSet)) {
             throw new BizException(ErrorCodeEnum.DATA_NOT_FOUND, "字典编码不存在");
         }
-        // 2、执行新增操作
-        SysDictItemPO po = new SysDictItemPO();
-        BeanUtil.copyProperties(param, po);
-        int i = sysDictItemMapper.insert(po);
-        if (i <= 0) {
-            throw new BizException(ErrorCodeEnum.OPERATION_FAIL);
-        }
-        return po.getId();
+        // 2、批量插入执行
+        this.saveBatch(BeanUtil.copyToList(paramList, SysDictItemPO.class));
     }
 
     /**
      * 编辑
      *
-     * @param param {@link SysDictItemAddOrEditParam}
+     * @param param {@link SysDictItemParam}
      * @author xutu
      * @date 2025-10-28 09:22:53
      */
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public void edit(SysDictItemAddOrEditParam param) {
+    public void edit(SysDictItemParam param) {
         // 1、判断当前 id 是否存在
         SysDictItemPO po = isExistById(param.getId());
         if (ObjectUtil.isNull(po)) {
