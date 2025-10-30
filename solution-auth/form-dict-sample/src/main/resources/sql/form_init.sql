@@ -46,7 +46,7 @@ CREATE TABLE `tpl_template_field` (
   `option_source` tinyint DEFAULT '1' COMMENT '选项来源：1=字典，2=模板选项，3=接口获取, 4=自由输入',
   `dict_code` varchar(64) DEFAULT NULL COMMENT '绑定字典编码（option_source=1时）',
   `option_api` varchar(256) DEFAULT NULL COMMENT '选项接口URL（option_source=3时使用）',
-  `option_api_method` varchar(10) DEFAULT 'GET' COMMENT '接口请求方式：GET/POST',
+  `option_api_method` varchar(10) DEFAULT NULL COMMENT '接口请求方式：GET/POST',
   `option_api_params` json DEFAULT NULL COMMENT '接口参数（支持模板变量）',
 
   `required` tinyint DEFAULT '0' COMMENT '是否必填 0=否 1=是',
