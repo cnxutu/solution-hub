@@ -1,9 +1,12 @@
 package com.cv.solution.formdict.form.facade;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.collection.CollUtil;
+import cn.hutool.core.util.ObjectUtil;
 import cn.hutool.core.util.StrUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.CollectionUtils;
+import com.cv.boot.common.enums.ErrorCodeEnum;
 import com.cv.boot.common.exception.BizException;
 import com.cv.solution.formdict.form.common.util.TemplateValidatorUtils;
 import com.cv.solution.formdict.dict.pojo.po.SysDictItemPO;
@@ -12,6 +15,8 @@ import com.cv.solution.formdict.form.pojo.param.*;
 import com.cv.solution.formdict.form.pojo.po.*;
 import com.cv.solution.formdict.form.pojo.vo.*;
 import com.cv.solution.formdict.form.service.*;
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +27,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -225,36 +231,67 @@ public class TemplateFacade {
                         .eq(TemplateFieldPO::getIsDeleted, 0)
         );
 
-        Map<String, FormFieldDataParam> fieldDataMap = param.getFieldValues().entrySet().stream()
-                .collect(Collectors.toMap(
-                        Map.Entry::getKey,
-                        e -> {
-                            FormFieldDataParam dataParam = new FormFieldDataParam();
-                            dataParam.setFieldCode(e.getKey());
-                            dataParam.setFieldValue(e.getValue());
-                            return dataParam;
-                        }
-                ));
+        Map<String, FormFieldDataParam> fieldDataMap = param.getFormFieldData().stream()
+                .collect(Collectors.toMap(FormFieldDataParam::getFieldCode, Function.identity()));
+
 
         // 2️⃣ 校验录入数据
         TemplateValidatorUtils.validateFieldData(templateFields, fieldDataMap);
 
         // 3️⃣ 构建 tpl_template_data PO
-        List<TemplateDataPO> dataList = templateFields.stream()
-                .map(field -> {
-                    TemplateDataPO data = new TemplateDataPO();
-                    data.setTemplateId(param.getTemplateId());
-                    data.setRecordId(param.getRecordId());
-                    data.setFieldValues(param.getFieldValues());
-                    return data;
-                })
-                .collect(Collectors.toList());
+        // ✅ 只构建一条 TemplateDataPO 记录
+        TemplateDataPO data = new TemplateDataPO();
+        data.setTemplateId(param.getTemplateId());
+        data.setRecordId(param.getRecordId());
+
+        // 转换 formFieldData → Map<String, Object>
+        if (CollUtil.isNotEmpty(param.getFormFieldData())) {
+            Map<String, Object> fieldValuesMap = param.getFormFieldData().stream()
+                    .collect(Collectors.toMap(
+                            FormFieldDataParam::getFieldCode,
+                            FormFieldDataParam::getFieldValue
+                    ));
+            data.setFieldValues(fieldValuesMap);
+        }
 
         // 4️⃣ 批量插入
-        if (CollectionUtils.isNotEmpty(dataList)) {
-            dataService.saveBatch(dataList);
+        if (ObjectUtil.isNotNull(data)) {
+            dataService.saveOrUpdate(data);
         }
     }
 
 
+    public TemplateDataVO getTemplateDataDetail(Long templateDataId) {
+        TemplateDataPO data = dataService.getById(templateDataId);
+        if (data == null) {
+            throw new BizException(ErrorCodeEnum.DATA_NOT_FOUND, "记录不存在或已删除");
+        }
+
+        // 获取模板字段配置
+        List<TemplateFieldPO> fieldList = fieldService.list(
+                new LambdaQueryWrapper<TemplateFieldPO>()
+                        .eq(TemplateFieldPO::getTemplateId, data.getTemplateId())
+                        .eq(TemplateFieldPO::getStatus, 1)
+                        .eq(TemplateFieldPO::getIsDeleted, 0)
+                        .orderByAsc(TemplateFieldPO::getFieldSort)
+        );
+
+        // 解析 JSON
+        Map<String, Object> fieldValues = data.getFieldValues();
+
+        // 转换为 VO
+        TemplateDataVO vo = new TemplateDataVO();
+        vo.setRecordId(data.getRecordId());
+        vo.setTemplateId(data.getTemplateId());
+        vo.setFieldData(fieldList.stream()
+                .map(f -> {
+                    FormFieldDataParam form = new FormFieldDataParam();
+                    form.setFieldCode(f.getFieldCode());
+                    form.setFieldValue(fieldValues.get(f.getFieldCode()));
+                    return form;
+                })
+                .collect(Collectors.toList()));
+        return vo;
+
+    }
 }

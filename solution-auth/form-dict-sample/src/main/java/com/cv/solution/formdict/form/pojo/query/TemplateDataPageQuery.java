@@ -21,7 +21,6 @@ import com.cv.boot.common.pojo.query.PageQuery;
 @Data
 public class TemplateDataPageQuery extends PageQuery {
 
-
     /**
      * 所属模板ID
      */
@@ -32,15 +31,5 @@ public class TemplateDataPageQuery extends PageQuery {
      */
     @NotNull(message = "录入记录ID，标识一次完整录入不能为空")
 	private Long recordId;
-    /**
-     * 字段编码
-     */
-    @NotBlank(message = "字段编码不能为空")
-	private String fieldCode;
-    /**
-     * 字段值
-     */
-    @NotBlank(message = "字段值不能为空")
-	private String fieldValue;
 
 }

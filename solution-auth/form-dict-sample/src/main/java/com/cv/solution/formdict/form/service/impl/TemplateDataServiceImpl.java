@@ -5,6 +5,8 @@
 package com.cv.solution.formdict.form.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import cn.hutool.core.util.ObjectUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.cv.boot.common.enums.ErrorCodeEnum;
@@ -24,9 +26,10 @@ import com.cv.boot.mybatisplus.util.PageUtils;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import lombok.extern.slf4j.Slf4j;
+
 import javax.annotation.Resource;
 
-/**   
+/**
  * 模板录入数据表服务实现层
  *
  * @author xutu
@@ -34,7 +37,7 @@ import javax.annotation.Resource;
  */
 @Service
 @Slf4j
-public class TemplateDataServiceImpl extends ServiceImpl<TemplateDataMapper, TemplateDataPO> implements ITemplateDataService  {
+public class TemplateDataServiceImpl extends ServiceImpl<TemplateDataMapper, TemplateDataPO> implements ITemplateDataService {
 
     @Resource
     private TemplateDataMapper templateDataMapper;
@@ -51,16 +54,21 @@ public class TemplateDataServiceImpl extends ServiceImpl<TemplateDataMapper, Tem
     public PageInfoVO<TemplateDataPageVO> pageList(TemplateDataPageQuery query) {
         Page page = new Page(query.getCurrent(), query.getSize());
         Page<TemplateDataPageVO> pageList = templateDataMapper.selectTemplateDataPageList(page, query);
+//        LambdaQueryWrapper<TemplateDataPO> queryWrapper = new LambdaQueryWrapper<>();
+//        if (ObjectUtil.isNotNull(query.getTemplateId())) {
+//            queryWrapper.eq(TemplateDataPO::getTemplateId, query.getTemplateId());
+//        }
+//        return PageUtils.buildPage(this.page(page, queryWrapper));
         return PageUtils.buildPage(pageList);
     }
 
     /**
-    * 新增
-    *
-    * @param param {@link TemplateDataParam}
-    * @author xutu
-    * @date 2025-10-28 19:44:00
-    */
+     * 新增
+     *
+     * @param param {@link TemplateDataParam}
+     * @author xutu
+     * @date 2025-10-28 19:44:00
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public Long add(TemplateDataParam param) {
@@ -75,12 +83,12 @@ public class TemplateDataServiceImpl extends ServiceImpl<TemplateDataMapper, Tem
     }
 
     /**
-    * 编辑
-    *
-    * @param param {@link TemplateDataParam}
-    * @author xutu
-    * @date 2025-10-28 19:44:00
-    */
+     * 编辑
+     *
+     * @param param {@link TemplateDataParam}
+     * @author xutu
+     * @date 2025-10-28 19:44:00
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void edit(TemplateDataParam param) {
@@ -94,12 +102,12 @@ public class TemplateDataServiceImpl extends ServiceImpl<TemplateDataMapper, Tem
     }
 
     /**
-    * 删除
-    *
-    * @param query id
-    * @author xutu
-    * @date 2025-10-28 19:44:00
-    */
+     * 删除
+     *
+     * @param query id
+     * @author xutu
+     * @date 2025-10-28 19:44:00
+     */
     @Override
     @Transactional(rollbackFor = Exception.class)
     public void delete(DeletedByIdListQuery query) {

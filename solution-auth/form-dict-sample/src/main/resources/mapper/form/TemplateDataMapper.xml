@@ -8,13 +8,9 @@
 
     <!-- 分页列表 -->
     <select id="selectTemplateDataPageList"
-            resultType="com.cv.solution.formdict.form.pojo.vo.TemplateDataPageVO">
+            resultMap="BaseResultMap">
         select
-            id,
-            template_id AS templateId,
-            record_id AS recordId,
-            field_code AS fieldCode,
-            field_value AS fieldValue
+        *
         from
         tpl_template_data
         <include refid="baseWhere"/>
@@ -23,20 +19,19 @@
 
     </select>
 
-	<resultMap id="BaseResultMap" type="com.cv.solution.formdict.form.pojo.po.TemplateDataPO">
+    <resultMap id="BaseResultMap" type="com.cv.solution.formdict.form.pojo.po.TemplateDataPO">
         <id column="id" property="id" />
-		<result column="template_id" property="templateId" />
-		<result column="record_id" property="recordId" />
-		<result column="field_code" property="fieldCode" />
-		<result column="field_value" property="fieldValue" />
+        <result column="template_id" property="templateId" />
+        <result column="record_id" property="recordId" />
+        <result column="field_values" property="fieldValues" typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler"/>
         <result column="create_time" property="createTime" />
         <result column="update_time" property="updateTime" />
         <result column="created_by" property="createdBy" />
         <result column="updated_by" property="updatedBy" />
         <result column="is_deleted" property="isDeleted" />
-	</resultMap>
-	<sql id="Base_Column_List">
-        id, template_id, record_id, field_code, field_value, create_time, update_time, created_by, updated_by, is_deleted
-	</sql>
-	
+    </resultMap>
+    <sql id="Base_Column_List">
+        id, template_id, record_id, field_values, create_time, update_time, created_by, updated_by, is_deleted
+    </sql>
+
 </mapper>

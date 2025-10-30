@@ -37,7 +37,7 @@ public class TemplateFieldVO {
     /** 字段类型，如 text, number, select, date */
     private String fieldType;
 
-    /** 选项来源：1=字典 2=模板专属选项 3=自由输入 */
+    /** 选项来源：1=字典 2=模板专属选项 3=接口调用 4=自由输入 */
     private Integer optionSource;
 
     /** 字典类型编码（当 optionSource=1 时使用） */

@@ -40,36 +40,9 @@ import javax.annotation.Resource;
 public class TemplateController {
 
     @Resource
-    private TemplateFacade templateFacade;
-
-    @Resource
     private ITemplateService templateService;
 
-    /**
-     * 根据模板编码获取模板定义（含字段与选项）
-     */
-    @GetMapping("/fullTemplate/{code}")
-    public Result<TemplateVO> getFullTemplate(@PathVariable String code) {
-        return Result.success(templateFacade.getFullTemplateWithTemplateCode(code));
-    }
 
-    /**
-     * 保存模板
-     */
-    @PostMapping("/saveTemplateForm")
-    public Result saveTemplateForm(@RequestBody @Validated TemplateParam param) {
-        templateFacade.saveTemplateFormNew(param);
-        return Result.success();
-    }
-
-    /**
-     * 保存对应模板的数据
-     */
-    @PostMapping("/saveTemplateData")
-    public Result saveTemplateData(@RequestBody FormTemplateDataParam param) {
-        templateFacade.saveTemplateData(param);
-        return Result.success();
-    }
 
     /**
      * @param query {@link }

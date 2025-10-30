@@ -1,6 +1,5 @@
 package com.cv.solution.formdict.form.pojo.param;
 
-import com.baomidou.mybatisplus.annotation.TableField;
 import lombok.Data;
 
 import java.math.BigDecimal;
@@ -8,18 +7,11 @@ import java.math.BigDecimal;
 /**
  * @author: xutu
  * @since: 2025/10/29 13:24
+ *
+ * y
  */
 @Data
-public class TemplateFieldValueParam {
-    /**
-     * 字段编码
-     */
-    private String fieldName;  // 字段名
-
-    /**
-     * 字段值
-     */
-    private Object value;      // 字段值
+public class FormFieldCheckParam extends FormFieldDataParam {
 
     /**
      * 字段类型

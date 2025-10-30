@@ -10,6 +10,7 @@ import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.Map;
 
 /**   
  * 模板录入数据表 新增接口入参
@@ -33,13 +34,7 @@ public class TemplateDataPageVO {
      * 录入记录ID，标识一次完整录入
      */
 	private Long recordId;
-    /**
-     * 字段编码
-     */
-	private String fieldCode;
-    /**
-     * 字段值
-     */
-	private String fieldValue;
+
+    private Map<String, Object> fieldValues;
 
 }

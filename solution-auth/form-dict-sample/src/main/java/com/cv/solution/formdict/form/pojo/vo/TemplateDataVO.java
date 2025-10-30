@@ -4,12 +4,15 @@
  */
 package com.cv.solution.formdict.form.pojo.vo;
 
+import com.cv.solution.formdict.form.pojo.param.FormFieldDataParam;
 import lombok.Data;
 import com.fasterxml.jackson.annotation.JsonFormat;
 import javax.validation.constraints.NotBlank;
 import javax.validation.constraints.NotNull;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Map;
 
 /**   
  * 模板录入数据表 新增接口入参
@@ -40,6 +43,8 @@ public class TemplateDataVO {
     /**
      * 字段值
      */
-	private String fieldValue;
+    private List<FormFieldDataParam> fieldData;
+
+    private Map<String, Object> fieldValues;
 
 }

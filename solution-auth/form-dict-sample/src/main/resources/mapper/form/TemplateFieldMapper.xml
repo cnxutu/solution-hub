@@ -10,18 +10,28 @@
     <select id="selectTemplateFieldPageList"
             resultType="com.cv.solution.formdict.form.pojo.vo.TemplateFieldPageVO">
         select
-            id,
-            template_id AS templateId,
-            field_code AS fieldCode,
-            field_name AS fieldName,
-            field_type AS fieldType,
-            option_source AS optionSource,
-            dict_code AS dictCode,
-            required AS required,
-            default_value AS defaultValue,
-            field_sort AS fieldSort,
-            status AS status,
-            remark AS remark
+        id,
+        template_id AS templateId,
+        field_code AS fieldCode,
+        field_name AS fieldName,
+        field_type AS fieldType,
+        input_sub_type AS inputSubType,
+        option_source AS optionSource,
+        dict_code AS dictCode,
+        option_api AS optionApi,
+        option_api_method AS optionApiMethod,
+        option_api_params AS optionApiParams,
+        required AS required,
+        default_value AS defaultValue,
+        min_length AS minLength,
+        max_length AS maxLength,
+        min_value AS minValue,
+        max_value AS maxValue,
+        pattern AS pattern,
+        decimal_scale AS decimalScale,
+        field_sort AS fieldSort,
+        status AS status,
+        remark AS remark
         from
         tpl_template_field
         <include refid="baseWhere"/>
@@ -30,27 +40,37 @@
 
     </select>
 
-	<resultMap id="BaseResultMap" type="com.cv.solution.formdict.form.pojo.po.TemplateFieldPO">
+    <resultMap id="BaseResultMap" type="com.cv.solution.formdict.form.pojo.po.TemplateFieldPO">
         <id column="id" property="id" />
-		<result column="template_id" property="templateId" />
-		<result column="field_code" property="fieldCode" />
-		<result column="field_name" property="fieldName" />
-		<result column="field_type" property="fieldType" />
-		<result column="option_source" property="optionSource" />
-		<result column="dict_code" property="dictCode" />
-		<result column="required" property="required" />
-		<result column="default_value" property="defaultValue" />
-		<result column="field_sort" property="fieldSort" />
-		<result column="status" property="status" />
-		<result column="remark" property="remark" />
+        <result column="template_id" property="templateId" />
+        <result column="field_code" property="fieldCode" />
+        <result column="field_name" property="fieldName" />
+        <result column="field_type" property="fieldType" />
+        <result column="input_sub_type" property="inputSubType" />
+        <result column="option_source" property="optionSource" />
+        <result column="dict_code" property="dictCode" />
+        <result column="option_api" property="optionApi" />
+        <result column="option_api_method" property="optionApiMethod" />
+        <result column="option_api_params" property="optionApiParams" typeHandler="com.baomidou.mybatisplus.extension.handlers.JacksonTypeHandler"/>
+        <result column="required" property="required" />
+        <result column="default_value" property="defaultValue" />
+        <result column="min_length" property="minLength" />
+        <result column="max_length" property="maxLength" />
+        <result column="min_value" property="minValue" />
+        <result column="max_value" property="maxValue" />
+        <result column="pattern" property="pattern" />
+        <result column="decimal_scale" property="decimalScale" />
+        <result column="field_sort" property="fieldSort" />
+        <result column="status" property="status" />
+        <result column="remark" property="remark" />
         <result column="create_time" property="createTime" />
         <result column="update_time" property="updateTime" />
         <result column="created_by" property="createdBy" />
         <result column="updated_by" property="updatedBy" />
         <result column="is_deleted" property="isDeleted" />
-	</resultMap>
-	<sql id="Base_Column_List">
-        id, template_id, field_code, field_name, field_type, option_source, dict_code, required, default_value, field_sort, status, remark, create_time, update_time, created_by, updated_by, is_deleted
-	</sql>
-	
+    </resultMap>
+    <sql id="Base_Column_List">
+        id, template_id, field_code, field_name, field_type, input_sub_type, option_source, dict_code, option_api, option_api_method, option_api_params, required, default_value, min_length, max_length, min_value, max_value, pattern, decimal_scale, field_sort, status, remark, create_time, update_time, created_by, updated_by, is_deleted
+    </sql>
+
 </mapper>
