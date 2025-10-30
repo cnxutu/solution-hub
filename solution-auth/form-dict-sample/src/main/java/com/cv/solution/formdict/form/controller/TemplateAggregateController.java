@@ -51,6 +51,9 @@ public class TemplateAggregateController {
         return Result.success();
     }
 
+    /**
+     * 获取模板录入数据详情
+     */
     @GetMapping("/templateData/detail/{templateDataId}")
     public Result<TemplateDataVO> getTemplateDataDetail(@PathVariable Long templateDataId) {
         TemplateDataVO data = templateFacade.getTemplateDataDetail(templateDataId);

@@ -223,6 +223,11 @@ public class TemplateFacade {
 
     @Transactional(rollbackFor = Exception.class)
     public void saveTemplateData(FormTemplateDataParam param) {
+        // 判断当前模板是否存在
+        TemplatePO byId = templateService.getById(param.getTemplateId());
+        if (ObjectUtil.isNull(byId)) {
+            throw new BizException(ErrorCodeEnum.DATA_NOT_FOUND, "模板不存在");
+        }
 
         // 1️⃣ 获取模板字段定义
         List<TemplateFieldPO> templateFields = fieldService.list(
