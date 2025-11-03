@@ -11,12 +11,11 @@ import com.cv.boot.common.exception.BizException;
 import com.cv.solution.formdict.form.common.util.TemplateValidatorUtils;
 import com.cv.solution.formdict.dict.pojo.po.SysDictItemPO;
 import com.cv.solution.formdict.dict.service.ISysDictItemService;
+import com.cv.solution.formdict.form.common.validation.FieldValidationService;
 import com.cv.solution.formdict.form.pojo.param.*;
 import com.cv.solution.formdict.form.pojo.po.*;
 import com.cv.solution.formdict.form.pojo.vo.*;
 import com.cv.solution.formdict.form.service.*;
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.common.collect.ImmutableMap;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -45,6 +44,8 @@ public class TemplateFacade {
     private final ITemplateFieldOptionService optionService;
     private final ISysDictItemService dictItemService;
     private final ITemplateDataService dataService;
+
+    private final FieldValidationService fieldValidationService;
 
     /**
      * 根据模板编码获取模板及其字段定义（含选项）
@@ -241,7 +242,8 @@ public class TemplateFacade {
 
 
         // 2️⃣ 校验录入数据
-        TemplateValidatorUtils.validateFieldData(templateFields, fieldDataMap);
+//        TemplateValidatorUtils.validateFieldData(templateFields, fieldDataMap);
+        fieldValidationService.validateFieldData(templateFields, fieldDataMap);
 
         // 3️⃣ 构建 tpl_template_data PO
         // ✅ 只构建一条 TemplateDataPO 记录
