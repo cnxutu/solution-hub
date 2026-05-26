@@ -9,19 +9,12 @@
         <version>1.0.0</version>
     </parent>
 
-    <artifactId>solution-auth</artifactId>
-    <version>1.0.0</version>
-    <packaging>pom</packaging>
+    <artifactId>solution-i18n</artifactId>
 
     <properties>
-        <maven.compiler.source>17</maven.compiler.source>
-        <maven.compiler.target>17</maven.compiler.target>
+        <maven.compiler.source>8</maven.compiler.source>
+        <maven.compiler.target>8</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
-
-    <modules>
-<!--        <module>jwt-login-sample</module>-->
-        <module>form-dict-sample</module>
-    </modules>
 
 </project>
