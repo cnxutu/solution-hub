@@ -2,15 +2,16 @@ package com.cv.i18n.config;
 
 import com.cv.i18n.core.I18nMessageResolver;
 import com.cv.i18n.core.SpringMessageI18nResolver;
-import com.cv.i18n.filter.I18nLocaleFilter;
+import com.cv.i18n.interceptor.I18nLocaleInterceptor;
 import com.cv.i18n.processor.I18nResponseBodyAdvice;
 import com.cv.i18n.processor.I18nValueProcessor;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
-import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.MessageSource;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
 public class SolutionI18nAutoConfiguration {
@@ -34,13 +35,19 @@ public class SolutionI18nAutoConfiguration {
     }
 
     @Bean
-    @ConditionalOnMissingBean(name = "i18nLocaleFilterRegistration")
-    public FilterRegistrationBean<I18nLocaleFilter> i18nLocaleFilterRegistration() {
-        FilterRegistrationBean<I18nLocaleFilter> registrationBean = new FilterRegistrationBean<>();
-        registrationBean.setFilter(new I18nLocaleFilter());
-        registrationBean.setOrder(Integer.MIN_VALUE + 100);
-        registrationBean.addUrlPatterns("/*");
-        registrationBean.setName("i18nLocaleFilter");
-        return registrationBean;
+    @ConditionalOnMissingBean
+    public I18nLocaleInterceptor i18nLocaleInterceptor() {
+        return new I18nLocaleInterceptor();
+    }
+
+    @Bean
+    @ConditionalOnMissingBean(name = "i18nWebMvcConfigurer")
+    public WebMvcConfigurer i18nWebMvcConfigurer(I18nLocaleInterceptor interceptor) {
+        return new WebMvcConfigurer() {
+            @Override
+            public void addInterceptors(InterceptorRegistry registry) {
+                registry.addInterceptor(interceptor).addPathPatterns("/**");
+            }
+        };
     }
 }
