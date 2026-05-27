@@ -4,21 +4,19 @@ import com.cv.i18n.core.I18nEnum;
 
 public enum OrderStatusEnum implements I18nEnum {
 
-    CREATED("order.status.created", "Created"),
-    PAID("order.status.paid", "Paid"),
-    SHIPPED("order.status.shipped", "Shipped");
+    CREATED("已创建"),
+    PAID("已支付"),
+    SHIPPED("已发货");
 
-    private final String i18nCode;
     private final String defaultMessage;
 
-    OrderStatusEnum(String i18nCode, String defaultMessage) {
-        this.i18nCode = i18nCode;
+    OrderStatusEnum(String defaultMessage) {
         this.defaultMessage = defaultMessage;
     }
 
     @Override
     public String getI18nCode() {
-        return i18nCode;
+        return defaultMessage;
     }
 
     @Override

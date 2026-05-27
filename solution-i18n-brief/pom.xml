@@ -10,6 +10,7 @@
     </parent>
 
     <artifactId>solution-i18n-brief</artifactId>
+    <packaging>pom</packaging>
 
     <modules>
         <module>i18n-core-brief</module>

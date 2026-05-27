@@ -42,7 +42,7 @@ class I18nCoreSampleApplicationTests {
     }
 
     @Test
-    @DisplayName("测试枚举自动翻译 - 中文")
+    @DisplayName("测试枚举自动翻译 - 中文环境返回中文")
     void testEnumTranslationChinese() {
         I18nContextHolder.setLocale(Locale.SIMPLIFIED_CHINESE);
         
@@ -53,7 +53,7 @@ class I18nCoreSampleApplicationTests {
     }
 
     @Test
-    @DisplayName("测试枚举自动翻译 - 英文")
+    @DisplayName("测试枚举自动翻译 - 英文环境翻译为英文")
     void testEnumTranslationEnglish() {
         I18nContextHolder.setLocale(Locale.ENGLISH);
         
@@ -64,14 +64,10 @@ class I18nCoreSampleApplicationTests {
     }
 
     @Test
-    @DisplayName("测试@I18nField注解翻译 - 带prefix")
-    void testI18nFieldWithPrefix() {
+    @DisplayName("测试@I18nField带prefix - 中文环境不转换")
+    void testI18nFieldWithPrefixChinese() {
         I18nContextHolder.setLocale(Locale.SIMPLIFIED_CHINESE);
         
-        Map<String, Object> testBean = new LinkedHashMap<>();
-        testBean.put("statusCode", "paid");
-        
-        // 模拟DTO字段
         class TestDTO {
             @com.cv.i18n.annotation.I18nField(prefix = "order.status.")
             private String statusCode;
@@ -85,14 +81,98 @@ class I18nCoreSampleApplicationTests {
             }
         }
         
-        TestDTO dto = new TestDTO("paid");
+        TestDTO dto = new TestDTO("已支付");
         Object result = valueProcessor.process(dto);
         
         @SuppressWarnings("unchecked")
         Map<String, Object> resultMap = (Map<String, Object>) result;
         
-        assertEquals("paid", resultMap.get("statusCode"));
+        assertEquals("已支付", resultMap.get("statusCode"));
         assertEquals("已支付", resultMap.get("statusCodeText"));
+    }
+
+    @Test
+    @DisplayName("测试@I18nField带prefix - 英文环境翻译")
+    void testI18nFieldWithPrefixEnglish() {
+        I18nContextHolder.setLocale(Locale.ENGLISH);
+        
+        class TestDTO {
+            @com.cv.i18n.annotation.I18nField(prefix = "order.status.")
+            private String statusCode;
+
+            public TestDTO(String statusCode) {
+                this.statusCode = statusCode;
+            }
+
+            public String getStatusCode() {
+                return statusCode;
+            }
+        }
+        
+        TestDTO dto = new TestDTO("已支付");
+        Object result = valueProcessor.process(dto);
+        
+        @SuppressWarnings("unchecked")
+        Map<String, Object> resultMap = (Map<String, Object>) result;
+        
+        assertEquals("已支付", resultMap.get("statusCode"));
+        assertEquals("Paid", resultMap.get("statusCodeText"));
+    }
+
+    @Test
+    @DisplayName("测试@I18nField不带prefix - 中文环境不转换")
+    void testI18nFieldWithoutPrefixChinese() {
+        I18nContextHolder.setLocale(Locale.SIMPLIFIED_CHINESE);
+        
+        class TestDTO {
+            @com.cv.i18n.annotation.I18nField
+            private String statusCode;
+
+            public TestDTO(String statusCode) {
+                this.statusCode = statusCode;
+            }
+
+            public String getStatusCode() {
+                return statusCode;
+            }
+        }
+        
+        TestDTO dto = new TestDTO("已支付");
+        Object result = valueProcessor.process(dto);
+        
+        @SuppressWarnings("unchecked")
+        Map<String, Object> resultMap = (Map<String, Object>) result;
+        
+        assertEquals("已支付", resultMap.get("statusCode"));
+        assertEquals("已支付", resultMap.get("statusCodeText"));
+    }
+
+    @Test
+    @DisplayName("测试@I18nField不带prefix - 英文环境翻译（全局key）")
+    void testI18nFieldWithoutPrefixEnglish() {
+        I18nContextHolder.setLocale(Locale.ENGLISH);
+        
+        class TestDTO {
+            @com.cv.i18n.annotation.I18nField
+            private String statusCode;
+
+            public TestDTO(String statusCode) {
+                this.statusCode = statusCode;
+            }
+
+            public String getStatusCode() {
+                return statusCode;
+            }
+        }
+        
+        TestDTO dto = new TestDTO("已支付");
+        Object result = valueProcessor.process(dto);
+        
+        @SuppressWarnings("unchecked")
+        Map<String, Object> resultMap = (Map<String, Object>) result;
+        
+        assertEquals("已支付", resultMap.get("statusCode"));
+        assertEquals("Paid", resultMap.get("statusCodeText"));
     }
 
     @Test
@@ -131,8 +211,8 @@ class I18nCoreSampleApplicationTests {
     }
 
     @Test
-    @DisplayName("测试List字段翻译")
-    void testListTranslation() {
+    @DisplayName("测试List字段翻译带prefix - 中文环境")
+    void testListTranslationWithPrefixChinese() {
         I18nContextHolder.setLocale(Locale.SIMPLIFIED_CHINESE);
         
         class TestDTO {
@@ -148,7 +228,7 @@ class I18nCoreSampleApplicationTests {
             }
         }
         
-        TestDTO dto = new TestDTO(Arrays.asList("paid", "shipped"));
+        TestDTO dto = new TestDTO(Arrays.asList("已支付", "已发货"));
         Object result = valueProcessor.process(dto);
         
         @SuppressWarnings("unchecked")
@@ -163,8 +243,40 @@ class I18nCoreSampleApplicationTests {
     }
 
     @Test
-    @DisplayName("测试Map字段翻译")
-    void testMapTranslation() {
+    @DisplayName("测试List字段翻译带prefix - 英文环境")
+    void testListTranslationWithPrefixEnglish() {
+        I18nContextHolder.setLocale(Locale.ENGLISH);
+        
+        class TestDTO {
+            @com.cv.i18n.annotation.I18nField(prefix = "order.status.", target = "statusNameList")
+            private List<String> statusList;
+
+            public TestDTO(List<String> statusList) {
+                this.statusList = statusList;
+            }
+
+            public List<String> getStatusList() {
+                return statusList;
+            }
+        }
+        
+        TestDTO dto = new TestDTO(Arrays.asList("已支付", "已发货"));
+        Object result = valueProcessor.process(dto);
+        
+        @SuppressWarnings("unchecked")
+        Map<String, Object> resultMap = (Map<String, Object>) result;
+        
+        @SuppressWarnings("unchecked")
+        List<String> translatedList = (List<String>) resultMap.get("statusNameList");
+        
+        assertEquals(2, translatedList.size());
+        assertEquals("Paid", translatedList.get(0));
+        assertEquals("Shipped", translatedList.get(1));
+    }
+
+    @Test
+    @DisplayName("测试Map字段翻译带prefix - 中文环境")
+    void testMapTranslationWithPrefixChinese() {
         I18nContextHolder.setLocale(Locale.SIMPLIFIED_CHINESE);
         
         class TestDTO {
@@ -181,8 +293,8 @@ class I18nCoreSampleApplicationTests {
         }
         
         Map<String, String> tags = new LinkedHashMap<>();
-        tags.put("priority", "urgent");
-        tags.put("channel", "online");
+        tags.put("priority", "紧急");
+        tags.put("channel", "线上");
         
         TestDTO dto = new TestDTO(tags);
         Object result = valueProcessor.process(dto);
@@ -198,11 +310,46 @@ class I18nCoreSampleApplicationTests {
     }
 
     @Test
-    @DisplayName("测试嵌套对象翻译")
-    void testNestedObjectTranslation() {
+    @DisplayName("测试Map字段翻译带prefix - 英文环境")
+    void testMapTranslationWithPrefixEnglish() {
+        I18nContextHolder.setLocale(Locale.ENGLISH);
+        
+        class TestDTO {
+            @com.cv.i18n.annotation.I18nField(prefix = "order.tag.", target = "tagNameMap")
+            private Map<String, String> tags;
+
+            public TestDTO(Map<String, String> tags) {
+                this.tags = tags;
+            }
+
+            public Map<String, String> getTags() {
+                return tags;
+            }
+        }
+        
+        Map<String, String> tags = new LinkedHashMap<>();
+        tags.put("priority", "紧急");
+        tags.put("channel", "线上");
+        
+        TestDTO dto = new TestDTO(tags);
+        Object result = valueProcessor.process(dto);
+        
+        @SuppressWarnings("unchecked")
+        Map<String, Object> resultMap = (Map<String, Object>) result;
+        
+        @SuppressWarnings("unchecked")
+        Map<String, Object> translatedMap = (Map<String, Object>) resultMap.get("tagNameMap");
+        
+        assertEquals("Urgent", translatedMap.get("priority"));
+        assertEquals("Online", translatedMap.get("channel"));
+    }
+
+    @Test
+    @DisplayName("测试嵌套对象翻译 - 中文环境")
+    void testNestedObjectTranslationChinese() {
         I18nContextHolder.setLocale(Locale.SIMPLIFIED_CHINESE);
         
-        OrderItemDTO item = new OrderItemDTO("iPhone Case", 2, "normal");
+        OrderItemDTO item = new OrderItemDTO("iPhone Case", 2, "普通");
         Object result = valueProcessor.process(item);
         
         @SuppressWarnings("unchecked")
@@ -210,30 +357,47 @@ class I18nCoreSampleApplicationTests {
         
         assertEquals("iPhone Case", resultMap.get("skuName"));
         assertEquals(2, resultMap.get("quantity"));
-        assertEquals("normal", resultMap.get("tag"));
+        assertEquals("普通", resultMap.get("tag"));
         assertEquals("普通", resultMap.get("tagText"));
     }
 
     @Test
-    @DisplayName("测试完整订单DTO翻译")
-    void testOrderDetailTranslation() {
+    @DisplayName("测试嵌套对象翻译 - 英文环境")
+    void testNestedObjectTranslationEnglish() {
+        I18nContextHolder.setLocale(Locale.ENGLISH);
+        
+        OrderItemDTO item = new OrderItemDTO("iPhone Case", 2, "普通");
+        Object result = valueProcessor.process(item);
+        
+        @SuppressWarnings("unchecked")
+        Map<String, Object> resultMap = (Map<String, Object>) result;
+        
+        assertEquals("iPhone Case", resultMap.get("skuName"));
+        assertEquals(2, resultMap.get("quantity"));
+        assertEquals("普通", resultMap.get("tag"));
+        assertEquals("Normal", resultMap.get("tagText"));
+    }
+
+    @Test
+    @DisplayName("测试完整订单DTO翻译 - 中文环境")
+    void testOrderDetailTranslationChinese() {
         I18nContextHolder.setLocale(Locale.SIMPLIFIED_CHINESE);
         
         Map<String, String> tagMap = new LinkedHashMap<>();
-        tagMap.put("priority", "urgent");
-        tagMap.put("channel", "online");
+        tagMap.put("priority", "紧急");
+        tagMap.put("channel", "线上");
         
         OrderDetailDTO orderDetailDTO = new OrderDetailDTO(
                 "SO20260526001",
                 OrderStatusEnum.PAID,
-                "paid",
+                "已支付",
                 "Tom",
                 new BigDecimal("128.50"),
-                Arrays.asList("paid", "shipped"),
+                Arrays.asList("已支付", "已发货"),
                 tagMap,
                 Arrays.asList(
-                        new OrderItemDTO("iPhone Case", 2, "normal"),
-                        new OrderItemDTO("USB-C Cable", 1, "gift")
+                        new OrderItemDTO("iPhone Case", 2, "普通"),
+                        new OrderItemDTO("USB-C Cable", 1, "赠品")
                 )
         );
         
@@ -244,7 +408,7 @@ class I18nCoreSampleApplicationTests {
         
         assertEquals("SO20260526001", resultMap.get("orderNo"));
         assertEquals("已支付", resultMap.get("status"));
-        assertEquals("paid", resultMap.get("statusCode"));
+        assertEquals("已支付", resultMap.get("statusCode"));
         assertEquals("已支付", resultMap.get("statusCodeText"));
         assertEquals("Tom", resultMap.get("customerName"));
         assertEquals(new BigDecimal("128.50"), resultMap.get("amount"));
@@ -269,25 +433,25 @@ class I18nCoreSampleApplicationTests {
     }
 
     @Test
-    @DisplayName("测试英文环境下的完整翻译")
+    @DisplayName("测试完整订单DTO翻译 - 英文环境")
     void testOrderDetailTranslationEnglish() {
         I18nContextHolder.setLocale(Locale.ENGLISH);
         
         Map<String, String> tagMap = new LinkedHashMap<>();
-        tagMap.put("priority", "urgent");
-        tagMap.put("channel", "online");
+        tagMap.put("priority", "紧急");
+        tagMap.put("channel", "线上");
         
         OrderDetailDTO orderDetailDTO = new OrderDetailDTO(
                 "SO20260526001",
                 OrderStatusEnum.PAID,
-                "paid",
+                "已支付",
                 "Tom",
                 new BigDecimal("128.50"),
-                Arrays.asList("paid", "shipped"),
+                Arrays.asList("已支付", "已发货"),
                 tagMap,
                 Arrays.asList(
-                        new OrderItemDTO("iPhone Case", 2, "normal"),
-                        new OrderItemDTO("USB-C Cable", 1, "gift")
+                        new OrderItemDTO("iPhone Case", 2, "普通"),
+                        new OrderItemDTO("USB-C Cable", 1, "赠品")
                 )
         );
         
@@ -304,11 +468,16 @@ class I18nCoreSampleApplicationTests {
         Map<String, Object> tagNameMap = (Map<String, Object>) resultMap.get("tagNameMap");
         assertEquals("Urgent", tagNameMap.get("priority"));
         assertEquals("Online", tagNameMap.get("channel"));
+        
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> items = (List<Map<String, Object>>) resultMap.get("items");
+        assertEquals("Normal", items.get(0).get("tagText"));
+        assertEquals("Gift", items.get(1).get("tagText"));
     }
 
     @Test
-    @DisplayName("测试replace属性 - 直接替换原字段")
-    void testReplaceProperty() {
+    @DisplayName("测试replace属性 - 中文环境直接返回原值")
+    void testReplacePropertyChinese() {
         I18nContextHolder.setLocale(Locale.SIMPLIFIED_CHINESE);
         
         class TestDTO {
@@ -324,13 +493,41 @@ class I18nCoreSampleApplicationTests {
             }
         }
         
-        TestDTO dto = new TestDTO("paid");
+        TestDTO dto = new TestDTO("已支付");
         Object result = valueProcessor.process(dto);
         
         @SuppressWarnings("unchecked")
         Map<String, Object> resultMap = (Map<String, Object>) result;
         
         assertEquals("已支付", resultMap.get("statusCode"));
+        assertNull(resultMap.get("statusCodeText"));
+    }
+
+    @Test
+    @DisplayName("测试replace属性 - 英文环境替换为英文")
+    void testReplacePropertyEnglish() {
+        I18nContextHolder.setLocale(Locale.ENGLISH);
+        
+        class TestDTO {
+            @com.cv.i18n.annotation.I18nField(prefix = "order.status.", replace = true)
+            private String statusCode;
+
+            public TestDTO(String statusCode) {
+                this.statusCode = statusCode;
+            }
+
+            public String getStatusCode() {
+                return statusCode;
+            }
+        }
+        
+        TestDTO dto = new TestDTO("已支付");
+        Object result = valueProcessor.process(dto);
+        
+        @SuppressWarnings("unchecked")
+        Map<String, Object> resultMap = (Map<String, Object>) result;
+        
+        assertEquals("Paid", resultMap.get("statusCode"));
         assertNull(resultMap.get("statusCodeText"));
     }
 }

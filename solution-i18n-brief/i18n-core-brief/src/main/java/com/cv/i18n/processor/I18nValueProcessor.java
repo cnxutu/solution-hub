@@ -131,6 +131,10 @@ public class I18nValueProcessor {
         if (value == null) {
             return null;
         }
+        Locale locale = I18nContextHolder.getLocale();
+        if (!isEnglishLocale(locale)) {
+            return value;
+        }
         if (value instanceof I18nEnum) {
             I18nEnum i18nEnum = (I18nEnum) value;
             return resolve(i18nEnum.getI18nCode(), i18nField.args(), i18nEnum.getDefaultMessage(), wrapper, visited);
@@ -146,9 +150,17 @@ public class I18nValueProcessor {
     private Object translateEnum(Object value) {
         if (value instanceof I18nEnum) {
             I18nEnum i18nEnum = (I18nEnum) value;
-            return resolve(i18nEnum.getI18nCode(), new String[0], i18nEnum.getDefaultMessage(), null, null);
+            Locale locale = I18nContextHolder.getLocale();
+            if (isEnglishLocale(locale)) {
+                return resolve(i18nEnum.getI18nCode(), new String[0], i18nEnum.getDefaultMessage(), null, null);
+            }
+            return i18nEnum.getDefaultMessage();
         }
         return value;
+    }
+    
+    private boolean isEnglishLocale(Locale locale) {
+        return locale != null && (Locale.ENGLISH.equals(locale) || "en".equalsIgnoreCase(locale.getLanguage()));
     }
 
     private String resolve(String code, String[] argNames, String defaultMessage, BeanWrapper wrapper,
