@@ -1,0 +1,4 @@
+# Spring Boot 2.x auto-configuration
+org.springframework.boot.autoconfigure.EnableAutoConfiguration=\
+com.cv.i18n.config.SolutionI18nAutoConfiguration,\
+com.cv.i18n.config.MessageSourceConfig
