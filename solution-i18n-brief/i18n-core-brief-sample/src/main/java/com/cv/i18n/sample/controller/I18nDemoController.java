@@ -22,19 +22,19 @@ public class I18nDemoController {
     @GetMapping("/order")
     public OrderDetailDTO order() {
         Map<String, String> tagMap = new LinkedHashMap<>();
-        tagMap.put("priority", "urgent");
-        tagMap.put("channel", "online");
+        tagMap.put("priority", "紧急");
+        tagMap.put("channel", "线上");
         OrderDetailDTO orderDetailDTO = new OrderDetailDTO(
                 "SO20260526001",
                 OrderStatusEnum.PAID,
-                "paid",
+                "已支付",
                 "Tom",
                 new BigDecimal("128.50"),
-                Arrays.asList("paid", "shipped"),
+                Arrays.asList("已支付", "已发货"),
                 tagMap,
                 Arrays.asList(
-                        new OrderItemDTO("iPhone Case", 2, "normal"),
-                        new OrderItemDTO("USB-C Cable", 1, "gift")
+                        new OrderItemDTO("iPhone Case", 2, "普通"),
+                        new OrderItemDTO("USB-C Cable", 1, "赠品")
                 )
         );
         log.info("orderDetailDTO: {}", JSON.toJSONString(orderDetailDTO));

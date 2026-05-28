@@ -14,7 +14,7 @@
     <dependencies>
         <dependency>
             <groupId>com.cv</groupId>
-            <artifactId>i18n-core-brief</artifactId>
+            <artifactId>i18n-core-brief-starter</artifactId>
             <version>${project.version}</version>
         </dependency>
         <dependency>

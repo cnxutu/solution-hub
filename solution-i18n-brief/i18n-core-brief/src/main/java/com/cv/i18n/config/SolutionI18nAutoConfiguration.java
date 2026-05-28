@@ -6,7 +6,9 @@ import com.cv.i18n.interceptor.I18nLocaleInterceptor;
 import com.cv.i18n.processor.I18nResponseBodyAdvice;
 import com.cv.i18n.processor.I18nValueProcessor;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnClass;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnWebApplication;
 import org.springframework.context.MessageSource;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -14,6 +16,8 @@ import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 @Configuration
+@ConditionalOnWebApplication
+@ConditionalOnClass(I18nValueProcessor.class)
 public class SolutionI18nAutoConfiguration {
 
     @Bean

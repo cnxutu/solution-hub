@@ -1,6 +1,6 @@
 package com.cv.i18n.sample.controller;
 
-import com.cv.i18n.sample.I18nCoreSampleApplication;
+import com.cv.i18n.sample.I18nCoreBriefSampleApplication;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.DisplayName;
@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest(classes = I18nCoreSampleApplication.class)
+@SpringBootTest(classes = I18nCoreBriefSampleApplication.class)
 @AutoConfigureMockMvc
 class I18nDemoControllerIntegrationTest {
 

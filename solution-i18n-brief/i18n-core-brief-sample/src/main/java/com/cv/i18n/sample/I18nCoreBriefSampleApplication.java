@@ -8,9 +8,9 @@ import org.springframework.context.annotation.ComponentScan;
 @EnableSolutionI18n
 @SpringBootApplication
 @ComponentScan(basePackages = "com.cv.i18n")
-public class I18nCoreSampleApplication {
+public class I18nCoreBriefSampleApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(I18nCoreSampleApplication.class, args);
+        SpringApplication.run(I18nCoreBriefSampleApplication.class, args);
     }
 }

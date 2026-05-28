@@ -8,20 +8,41 @@
 2. **英文环境翻译**：仅当请求头指定英文环境时，自动将中文翻译为英文
 3. **支持上下文区分**：通过 `prefix` 属性区分不同业务场景的翻译
 4. **全局通用翻译**：不指定 `prefix` 时使用全局通用翻译 key
+5. **Spring Boot Starter 支持**：零配置自动装配，开箱即用
 
 ## 快速开始
 
-### 1. 引入依赖
+### 方式1：Spring Boot Starter 自动配置（推荐）
+
+#### 1. 引入依赖
 
 ```xml
 <dependency>
     <groupId>com.cv</groupId>
-    <artifactId>i18n-core-brief</artifactId>
+    <artifactId>i18n-core-brief-starter</artifactId>
     <version>1.0.0</version>
 </dependency>
 ```
 
-### 2. 启用国际化
+#### 2. 无需额外配置
+
+Starter 会自动配置所有组件，无需任何注解或代码配置！
+
+---
+
+### 方式2：传统 @Enable 注解方式
+
+#### 1. 引入依赖
+
+```xml
+<dependency>
+    <groupId>com.cv</groupId>
+    <artifactId>i18n-core-brief-starter</artifactId>
+    <version>1.0.0</version>
+</dependency>
+```
+
+#### 2. 启用国际化
 
 ```java
 @SpringBootApplication
