@@ -30,6 +30,40 @@ Netty 是一个基于 Java NIO 的高性能网络编程框架，本质上它帮�
 
 ## 3. 你需要先建立的几个核心概念
 
+### 3.0 先看一张概念关联图
+
+如果你想先用一张图快速建立整体认知，可以先看这个：
+
+```mermaid
+flowchart TD
+    A["外部系统/设备<br/>发送 TCP 数据"] --> B["Channel<br/>一条真实连接"]
+    B --> C["EventLoop<br/>负责这条连接的 IO 事件线程"]
+    C --> D["ChannelPipeline<br/>这条连接上的处理流水线"]
+
+    D --> E["FrameDecoder<br/>解决粘包拆包"]
+    E --> F["Decoder<br/>字节 -> 结构化消息"]
+    F --> G["Handler<br/>协议处理/业务分发"]
+    G --> H["Encoder<br/>结构化消息 -> 字节"]
+    H --> B
+
+    F -.底层承载.-> I["ByteBuf<br/>Netty 高性能缓冲区"]
+    G --> J["业务服务层<br/>鉴权/会话/数据处理/命令应答"]
+    J --> K["SessionManager<br/>deviceId <-> Channel 映射"]
+    K --> B
+
+    C -.一个 EventLoop 可服务多个 Channel.-> B
+```
+
+这张图可以先帮助你抓住一条主线：
+
+- 设备发来的数据，最终是进入某个 `Channel`
+- `Channel` 的事件由某个 `EventLoop` 负责
+- 数据会沿着这个 `Channel` 对应的 `Pipeline` 依次流过
+- 中间通过解码器、Handler、编码器完成“字节流 <-> 业务消息”的转换
+- 真正的业务处理通常还会再调用会话管理、鉴权、数据处理这些服务
+
+如果你把这条主线吃透，再看具体 API 就会顺很多。
+
 ### 3.1 Channel
 
 可以理解成“一条连接”。
@@ -53,6 +87,27 @@ Netty 是一个基于 Java NIO 的高性能网络编程框架，本质上它帮�
 - 并发模型更清晰
 - 很多连接内状态处理不需要自己加很多锁
 
+可以结合下面这张图一起理解：
+
+```mermaid
+flowchart LR
+    A["EventLoop-1<br/>单线程事件循环"] --> B["Channel-A"]
+    A --> C["Channel-B"]
+    A --> D["Channel-C"]
+
+    B --> E["Pipeline-A"]
+    C --> F["Pipeline-B"]
+    D --> G["Pipeline-C"]
+```
+
+这张图想表达的是：
+
+- 不是“一个连接一个线程”
+- 而是“一个 EventLoop 线程管理多个连接”
+- 但每个连接又有自己独立的 `Pipeline`
+
+这正是 Netty 比传统阻塞式模型更适合高并发连接场景的一个关键原因。
+
 ### 3.3 ChannelPipeline
 
 它像一条处理流水线。
@@ -72,6 +127,24 @@ Netty 是一个基于 Java NIO 的高性能网络编程框架，本质上它帮�
 4. `IdleStateHandler`
 5. `ServerMessageHandler`
 
+你可以把它想象成下面这个消息加工过程：
+
+```mermaid
+flowchart LR
+    A["原始 TCP 字节流"] --> B["DelimiterBasedFrameDecoder<br/>按分隔符切出完整帧"]
+    B --> C["StringDecoder<br/>字节 -> 字符串"]
+    C --> D["ServerMessageHandler<br/>字符串 -> 业务消息处理"]
+    D --> E["StringEncoder<br/>字符串回写"]
+    E --> F["TCP 输出"]
+```
+
+如果以后你换成二进制协议，这条链路仍然成立，只是中间节点会变成：
+
+- `LengthFieldBasedFrameDecoder`
+- 自定义 `ByteToMessageDecoder`
+- 自定义业务 `Handler`
+- 自定义 `MessageToByteEncoder`
+
 ### 3.4 ChannelHandler
 
 就是流水线里的处理节点。
@@ -84,13 +157,61 @@ Netty 是一个基于 Java NIO 的高性能网络编程框架，本质上它帮�
 - 业务路由
 - 异常处理
 
+更接近真实项目的理解方式可以看这张图：
+
+```mermaid
+flowchart TD
+    A["入站消息"] --> B["解码 Handler"]
+    B --> C["鉴权 Handler"]
+    C --> D["心跳/连接状态 Handler"]
+    D --> E["业务 Handler"]
+    E --> F["业务服务层"]
+
+    F --> G["出站消息"]
+    G --> H["编码 Handler"]
+```
+
+也就是说，`Handler` 不只是“收消息”，它其实是在连接层和业务层之间起到一个桥梁作用。
+
 ### 3.5 ByteBuf
 
 Netty 对字节缓冲区的封装，比 JDK 原生 `ByteBuffer` 更好用、性能也更强。
 
 你现在这个版本先用了字符串 JSON，等后续切到二进制协议时，你会重点和 `ByteBuf` 打交道。
 
+它在概念上的位置，大概可以理解成这样：
+
+```mermaid
+flowchart LR
+    A["网卡/Socket 字节数据"] --> B["ByteBuf"]
+    B --> C["Decoder"]
+    C --> D["Java 业务对象"]
+    D --> E["Encoder"]
+    E --> B
+    B --> F["Socket 回写"]
+```
+
+所以 `ByteBuf` 更偏底层，它是“网络字节”和“上层消息对象”之间非常核心的一层承载。
+
 ## 4. 服务端和客户端各自做什么
+
+你也可以把服务端和客户端的角色关系看成下面这个双边协作图：
+
+```mermaid
+flowchart LR
+    A["设备/客户端"] -->|"connect/register/heartbeat/telemetry"| B["Netty 服务端"]
+    B -->|"ack/command"| A
+
+    B --> C["SessionManager"]
+    B --> D["业务服务层"]
+    A --> E["本地设备逻辑/采集逻辑"]
+```
+
+这张图对应的现实含义是：
+
+- 客户端更像“数据上报方”
+- 服务端更像“连接接收方 + 指令控制方”
+- 业务系统围绕这两边做会话管理、命令处理和数据消费
 
 ### 服务端
 
@@ -250,3 +371,37 @@ TCP 是字节流，不是消息流。
 - 心跳与重连模型
 
 你后面真正要替换的，主要是“协议细节”和“业务处理细节”。
+
+最后再给你一张“从概念到落地代码”的总览图，方便你把本文和 `solution-netty` 的代码一起对应起来：
+
+```mermaid
+flowchart TD
+    A["TCP 长连接"] --> B["Channel"]
+    B --> C["EventLoop"]
+    B --> D["ChannelPipeline"]
+
+    D --> E["FrameDecoder"]
+    D --> F["Decoder/Encoder"]
+    D --> G["Handler"]
+
+    F --> H["ByteBuf"]
+    G --> I["协议消息对象<br/>TransportMessage"]
+    G --> J["连接控制<br/>心跳/异常/重连"]
+    G --> K["业务处理<br/>register/telemetry/command"]
+    K --> L["会话管理<br/>DeviceSessionManager"]
+    L --> M["按 deviceId 通信"]
+
+    N["当前示例代码"] -.映射到.-> B
+    N -.映射到.-> D
+    N -.映射到.-> G
+    N -.映射到.-> L
+```
+
+如果你后面再回头看这篇文档，建议按这个顺序去记：
+
+1. `Channel` 是连接本身
+2. `EventLoop` 是处理连接事件的线程
+3. `Pipeline` 是消息处理流水线
+4. `Handler` 是流水线里的处理节点
+5. `ByteBuf` 是底层字节承载
+6. 业务系统是在这些能力之上实现设备会话、心跳、命令和数据上报的

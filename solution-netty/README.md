@@ -7,6 +7,7 @@
 - `netty-core`：Netty TCP 服务端、客户端、会话管理、心跳、断线重连、消息编解码。
 - `netty-sample`：Spring Boot 示例工程，启动后会同时起 TCP 服务端和模拟设备客户端，便于本地联调。
 - [测试文档](./TESTING_GUIDE.md)：从启动到验证链路的完整步骤。
+- [测试场景与数据](./TEST_SCENARIOS_AND_DATA.md)：按顺序编排的场景、请求样例、预期结果和建议观察点。
 - [Netty 知识文档](./NETTY_KNOWLEDGE.md)：帮助你理解概念、线程模型、Pipeline、常见坑。
 
 ## 场景定位
