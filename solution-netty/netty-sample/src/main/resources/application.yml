@@ -1,0 +1,27 @@
+server:
+  port: 8091
+
+logging:
+  level:
+    com.cv.netty: DEBUG
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+netty:
+  sample:
+    tcp:
+      port: 19090
+    server:
+      boss-threads: 1
+      worker-threads: 2
+      read-idle-seconds: 30
+    mock:
+      enabled: true
+      count: 2
+      host: 127.0.0.1
+      heartbeat-seconds: 5
+      reconnect-seconds: 3

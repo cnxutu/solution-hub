@@ -20,6 +20,7 @@
         <module>solution-auth</module>
         <module>solution-i18n</module>
         <module>solution-i18n-brief</module>
+        <module>solution-netty</module>
     </modules>
 
     <properties>
