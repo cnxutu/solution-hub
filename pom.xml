@@ -21,6 +21,7 @@
         <module>solution-i18n</module>
         <module>solution-i18n-brief</module>
         <module>solution-netty</module>
+        <module>solution-rtsp</module>
     </modules>
 
     <properties>

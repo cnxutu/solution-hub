@@ -1,0 +1,28 @@
+server:
+  port: 8092
+
+logging:
+  level:
+    com.cv.rtsp: DEBUG
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+rtsp:
+  sample:
+    provider: mock
+    auto-start: true
+    keep-alive-seconds: 15
+    frame-pull-interval-millis: 800
+    rtsp-host: 127.0.0.1
+    rtsp-port: 8554
+    embedded-server:
+      enabled: true
+    ffmpeg:
+      binary: ffmpeg
+      transport: tcp
+      log-tail-size: 50
+      extra-args: []
