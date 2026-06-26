@@ -51,8 +51,15 @@ mvn -pl rtsp-core test
 
 ```bash
 cd solution-rtsp
-mvn -pl rtsp-sample -am spring-boot:run
+mvn -pl rtsp-sample -am install -DskipTests
+mvn -f rtsp-sample/pom.xml spring-boot:run
 ```
+
+说明：
+
+- 不要直接在 `solution-rtsp` 聚合模块上执行 `mvn -pl rtsp-sample -am spring-boot:run`
+- 这个命令会先命中聚合 `pom`，从而报 `Unable to find a suitable main class`
+- 推荐先 `install` 子模块依赖，再从 `rtsp-sample/pom.xml` 启动
 
 默认端口：
 

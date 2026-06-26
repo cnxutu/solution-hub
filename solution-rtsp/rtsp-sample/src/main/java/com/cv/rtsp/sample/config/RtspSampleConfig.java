@@ -10,6 +10,8 @@ import com.cv.rtsp.netty.gateway.NettyRtspCameraGateway;
 import com.cv.rtsp.netty.server.EmbeddedRtspServer;
 import com.cv.rtsp.sample.RtspProviderType;
 import com.cv.rtsp.sample.RtspSampleProperties;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Primary;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -42,6 +44,7 @@ public class RtspSampleConfig {
     }
 
     @Bean
+    @Primary
     public RtspCameraGateway rtspCameraGateway(RtspSampleProperties properties,
                                                MockRtspCameraGateway mockGateway,
                                                NettyRtspCameraGateway nettyGateway,
@@ -57,7 +60,7 @@ public class RtspSampleConfig {
     }
 
     @Bean
-    public RtspStreamClient rtspStreamClient(RtspCameraGateway gateway) {
+    public RtspStreamClient rtspStreamClient(@Qualifier("rtspCameraGateway") RtspCameraGateway gateway) {
         return new RtspStreamClient(gateway);
     }
 

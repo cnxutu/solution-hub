@@ -1,0 +1,6 @@
+#NOTE: This is a Maven Resolver internal implementation file, its format can be changed without prior notice.
+#Thu Jun 04 10:31:54 CST 2026
+@default-maven-public-http\://192.168.1.156\:54081/repository/maven-public/.lastUpdated=1780540314306
+@default-aliyunmaven-https\://maven.aliyun.com/repository/public/.lastUpdated=1780540314341
+https\://maven.aliyun.com/repository/public/.error=Could not transfer artifact com.cv\:knowledge-parent\:pom\:1.0.0 from/to aliyunmaven (https\://maven.aliyun.com/repository/public)\: Transfer failed for https\://maven.aliyun.com/repository/public/com/cv/knowledge-parent/1.0.0/knowledge-parent-1.0.0.pom
+http\://192.168.1.156\:54081/repository/maven-public/.error=Could not transfer artifact com.cv\:knowledge-parent\:pom\:1.0.0 from/to maven-public (http\://192.168.1.156\:54081/repository/maven-public/)\: Transfer failed for http\://192.168.1.156\:54081/repository/maven-public/com/cv/knowledge-parent/1.0.0/knowledge-parent-1.0.0.pom

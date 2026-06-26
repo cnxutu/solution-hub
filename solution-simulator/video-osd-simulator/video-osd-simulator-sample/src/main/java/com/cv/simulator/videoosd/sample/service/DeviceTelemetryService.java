@@ -1,0 +1,156 @@
+package com.cv.simulator.videoosd.sample.service;
+
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.cv.boot.crud.mp.support.MpCrudSupport;
+import com.cv.boot.mybatisplus.pojo.vo.PageInfoVO;
+import com.cv.simulator.videoosd.core.osd.DeviceTelemetryRecord;
+import com.cv.simulator.videoosd.core.osd.OsdExcelImporter;
+import com.cv.simulator.videoosd.core.osd.OsdPayloadSupport;
+import com.cv.simulator.videoosd.core.websocket.WebSocketOsdSender;
+import com.cv.simulator.videoosd.sample.config.SimulatorProperties;
+import com.cv.simulator.videoosd.sample.mapper.DeviceTelemetryMapper;
+import com.cv.simulator.videoosd.sample.pojo.entity.DeviceTelemetryEntity;
+import com.cv.simulator.videoosd.sample.pojo.query.DeleteIdsQuery;
+import com.cv.simulator.videoosd.sample.pojo.query.TelemetryPageQuery;
+import org.springframework.scheduling.annotation.Async;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.io.InputStream;
+import java.time.LocalDateTime;
+import java.util.List;
+
+@Service
+public class DeviceTelemetryService extends ServiceImpl<DeviceTelemetryMapper, DeviceTelemetryEntity> {
+
+    private final OsdExcelImporter excelImporter;
+    private final OsdPayloadSupport payloadSupport;
+    private final WebSocketOsdSender osdSender;
+    private final SimulatorProperties properties;
+    private final TaskRunLogService runLogService;
+
+    public DeviceTelemetryService(OsdExcelImporter excelImporter,
+                                  OsdPayloadSupport payloadSupport,
+                                  WebSocketOsdSender osdSender,
+                                  SimulatorProperties properties,
+                                  TaskRunLogService runLogService) {
+        this.excelImporter = excelImporter;
+        this.payloadSupport = payloadSupport;
+        this.osdSender = osdSender;
+        this.properties = properties;
+        this.runLogService = runLogService;
+    }
+
+    public PageInfoVO<DeviceTelemetryEntity> pageList(TelemetryPageQuery query) {
+        Page<DeviceTelemetryEntity> page = lambdaQuery()
+                .eq(DeviceTelemetryEntity::getIsDeleted, 0)
+                .eq(query.getTaskId() != null, DeviceTelemetryEntity::getTaskId, query.getTaskId())
+                .eq(query.getDeviceSn() != null && !query.getDeviceSn().trim().isEmpty(),
+                        DeviceTelemetryEntity::getDeviceSn, query.getDeviceSn())
+                .eq(query.getTrackId() != null && !query.getTrackId().trim().isEmpty(),
+                        DeviceTelemetryEntity::getTrackId, query.getTrackId())
+                .orderByAsc(DeviceTelemetryEntity::getPublishTime)
+                .orderByAsc(DeviceTelemetryEntity::getId)
+                .page(new Page<>(query.getCurrent(), query.getSize()));
+        return MpCrudSupport.buildPage(page);
+    }
+
+    public Long add(DeviceTelemetryEntity entity) {
+        entity.setCreateTime(LocalDateTime.now());
+        entity.setUpdateTime(LocalDateTime.now());
+        entity.setIsDeleted(0);
+        save(entity);
+        return entity.getId();
+    }
+
+    public Long edit(DeviceTelemetryEntity entity) {
+        entity.setUpdateTime(LocalDateTime.now());
+        updateById(entity);
+        return entity.getId();
+    }
+
+    public void delete(DeleteIdsQuery query) {
+        if (query.getIdList() == null || query.getIdList().isEmpty()) {
+            return;
+        }
+        query.getIdList().forEach(id -> {
+            DeviceTelemetryEntity entity = new DeviceTelemetryEntity();
+            entity.setId(id);
+            entity.setIsDeleted(1);
+            entity.setUpdateTime(LocalDateTime.now());
+            updateById(entity);
+        });
+    }
+
+    public DeviceTelemetryEntity detail(Long id) {
+        return MpCrudSupport.required(getById(id), () -> new IllegalArgumentException("telemetry not found"));
+    }
+
+    public Long uploadJson(DeviceTelemetryEntity entity) {
+        return add(entity);
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    public int importExcel(InputStream inputStream, Long taskId) {
+        List<DeviceTelemetryRecord> records = excelImporter.importExcel(inputStream);
+        records.forEach(record -> {
+            DeviceTelemetryEntity entity = fromRecord(record);
+            if (entity.getTaskId() == null) {
+                entity.setTaskId(taskId);
+            }
+            add(entity);
+        });
+        return records.size();
+    }
+
+    @Async
+    public void replayByTask(Long taskId) {
+        List<DeviceTelemetryEntity> rows = lambdaQuery()
+                .eq(DeviceTelemetryEntity::getTaskId, taskId)
+                .eq(DeviceTelemetryEntity::getIsDeleted, 0)
+                .orderByAsc(DeviceTelemetryEntity::getPublishTime)
+                .orderByAsc(DeviceTelemetryEntity::getId)
+                .list();
+        int sent = 0;
+        for (DeviceTelemetryEntity row : rows) {
+            osdSender.send(properties.getOsd().getWebsocketEndpoint(), payloadSupport.toPayloadJson(toRecord(row)));
+            sent++;
+            sleep(properties.getOsd().getFixedIntervalMillis());
+        }
+        runLogService.record(taskId, "OSD_REPLAY", "STOPPED", "osd replay completed", null, sent);
+    }
+
+    private DeviceTelemetryEntity fromRecord(DeviceTelemetryRecord record) {
+        DeviceTelemetryEntity entity = new DeviceTelemetryEntity();
+        entity.setTaskId(record.getTaskId());
+        entity.setDeviceSn(record.getDeviceSn());
+        entity.setLatitude(record.getLatitude());
+        entity.setLongitude(record.getLongitude());
+        entity.setRawJson(record.getRawJson());
+        entity.setPublishTime(record.getPublishTime());
+        return entity;
+    }
+
+    private DeviceTelemetryRecord toRecord(DeviceTelemetryEntity entity) {
+        DeviceTelemetryRecord record = new DeviceTelemetryRecord();
+        record.setId(entity.getId());
+        record.setTaskId(entity.getTaskId());
+        record.setDeviceSn(entity.getDeviceSn());
+        record.setLatitude(entity.getLatitude());
+        record.setLongitude(entity.getLongitude());
+        record.setModeCode(entity.getModeCode());
+        record.setTrackId(entity.getTrackId());
+        record.setRawJson(entity.getRawJson());
+        return record;
+    }
+
+    private void sleep(long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("osd replay interrupted", e);
+        }
+    }
+}

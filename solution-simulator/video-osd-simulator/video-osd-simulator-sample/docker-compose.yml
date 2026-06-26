@@ -1,0 +1,13 @@
+version: "3.8"
+
+services:
+  video-osd-simulator:
+    build: .
+    container_name: video-osd-simulator
+    ports:
+      - "18083:18083"
+    volumes:
+      - ./sample-videos:/app/sample-videos
+    environment:
+      SIMULATOR_FFMPEG_PATH: ffmpeg
+      SIMULATOR_OSD_WEBSOCKET_ENDPOINT: ws://host.docker.internal:18083/osd
