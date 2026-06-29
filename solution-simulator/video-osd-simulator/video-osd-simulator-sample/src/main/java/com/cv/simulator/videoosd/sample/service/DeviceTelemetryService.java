@@ -30,17 +30,20 @@ public class DeviceTelemetryService extends ServiceImpl<DeviceTelemetryMapper, D
     private final WebSocketOsdSender osdSender;
     private final SimulatorProperties properties;
     private final TaskRunLogService runLogService;
+    private final PublishTimeReplayExecutor replayExecutor;
 
     public DeviceTelemetryService(OsdExcelImporter excelImporter,
                                   OsdPayloadSupport payloadSupport,
                                   WebSocketOsdSender osdSender,
                                   SimulatorProperties properties,
-                                  TaskRunLogService runLogService) {
+                                  TaskRunLogService runLogService,
+                                  PublishTimeReplayExecutor replayExecutor) {
         this.excelImporter = excelImporter;
         this.payloadSupport = payloadSupport;
         this.osdSender = osdSender;
         this.properties = properties;
         this.runLogService = runLogService;
+        this.replayExecutor = replayExecutor;
     }
 
     public PageInfoVO<DeviceTelemetryEntity> pageList(TelemetryPageQuery query) {
@@ -117,16 +120,18 @@ public class DeviceTelemetryService extends ServiceImpl<DeviceTelemetryMapper, D
         List<DeviceTelemetryEntity> rows = lambdaQuery()
                 .eq(DeviceTelemetryEntity::getTaskId, taskId)
                 .eq(DeviceTelemetryEntity::getIsDeleted, 0)
+                .isNotNull(DeviceTelemetryEntity::getPublishTime)
                 .ge(publishTimeStart != null, DeviceTelemetryEntity::getPublishTime, publishTimeStart)
                 .le(publishTimeEnd != null, DeviceTelemetryEntity::getPublishTime, publishTimeEnd)
                 .orderByAsc(DeviceTelemetryEntity::getPublishTime)
                 .orderByAsc(DeviceTelemetryEntity::getId)
                 .list();
-        int sent = 0;
-        for (DeviceTelemetryEntity row : rows) {
+        int sent = replayExecutor.replay(rows, row -> {
             osdSender.send(properties.getOsd().getWebsocketEndpoint(), payloadSupport.toPayloadJson(toRecord(row)));
-            sent++;
-            sleep(properties.getOsd().getFixedIntervalMillis());
+        }, this::sleep);
+        if (sent == 0) {
+            runLogService.record(taskId, "OSD_REPLAY", "STOPPED", "no osd data found in publish_time window", null, 0);
+            return;
         }
         runLogService.record(taskId, "OSD_REPLAY", "STOPPED", "osd replay completed", null, sent);
     }

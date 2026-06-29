@@ -36,9 +36,9 @@ public class SimulatorProperties {
     @Data
     public static class Zlm {
         private String host = "127.0.0.1";
-        private Integer rtmpPort = 1935;
-        private Integer rtspPort = 554;
-        private Integer rtcPort = 8080;
+        private Integer rtmpPort = 7935;
+        private Integer rtspPort = 8554;
+        private Integer rtcPort = 10000;
         private String app = "live";
         private String stream = "drone001";
     }

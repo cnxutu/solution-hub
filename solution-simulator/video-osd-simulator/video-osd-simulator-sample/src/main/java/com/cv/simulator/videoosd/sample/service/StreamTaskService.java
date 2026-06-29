@@ -146,7 +146,7 @@ public class StreamTaskService extends ServiceImpl<StreamTaskMapper, StreamTaskE
 
     private void fillDefaults(StreamTaskEntity entity) {
         if (entity.getProtocol() == null) {
-            entity.setProtocol(StreamProtocol.WEBRTC.name());
+            entity.setProtocol(StreamProtocol.RTMP.name());
         }
         if (entity.getStatus() == null) {
             entity.setStatus(TaskStatus.CREATED.name());

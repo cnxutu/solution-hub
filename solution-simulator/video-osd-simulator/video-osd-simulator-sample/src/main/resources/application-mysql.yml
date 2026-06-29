@@ -12,10 +12,13 @@ simulator:
   osd:
     publish-time-start:
     publish-time-end:
+    websocket-endpoint: ws://127.0.0.1:18083/osd
   zlm:
     host: 127.0.0.1
-    rtmp-port: 1935
-    rtsp-port: 554
-    rtc-port: 8080
+    rtmp-port: 7935
+    rtsp-port: 8554
+    rtc-port: 10000
     app: live
     stream: drone001
+  video:
+    source-file: C:/Users/44527/Downloads/trailer_video_test.mp4

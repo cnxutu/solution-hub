@@ -1,0 +1,253 @@
+# video-osd-simulator
+
+`video-osd-simulator` 用于联调 ZLMediaKit、视频推流与 OSD 数据回放。当前优先推荐的验证链路是：
+
+1. Spring Boot 调起 `ffmpeg`，把本地视频文件推到 ZLMediaKit 的 `RTMP` 地址。
+2. 同时从 MySQL `xm_test.device_telemetry_sub` 按 `publish_time` 时间轴回放一轮 OSD 数据到 WebSocket。
+3. 前端页面通过 ZLMediaKit 的 `WebRTC play` 方式拉流，并叠加接收到的 OSD。
+
+这样就不依赖本机额外安装 WebRTC 推流工具，也能先把“视频 + OSD + 前端展示”整条链路跑通。
+
+## 当前模块职责
+
+`video-osd-simulator-core`
+
+- `FfmpegCommandBuilder`：生成 `RTMP`、`RTSP` 推流命令。
+- `ExternalWebRtcCommandBuilder`：为后续外部 WebRTC 推流工具预留命令模板能力。
+- `StreamTaskRuntime`：维护外部推流进程状态。
+- `VideoSourceScanner`：扫描本地视频文件。
+- `OsdPayloadSupport`：把结构化字段和 `raw_json` 合并成最终 OSD JSON。
+
+`video-osd-simulator-sample`
+
+- 任务表 `sim_stream_task` 的 CRUD 与启动、停止、状态查询。
+- OSD 表 `device_telemetry_sub` 的 CRUD、JSON 上传、Excel 导入。
+- `application.yml` 提供本地 H2 默认配置。
+- `application-mysql.yml` 提供对接 `xm_test` 的 MySQL 示例配置。
+
+## 当前推荐配置
+
+MySQL profile 配置文件见 [application-mysql.yml](D:/workspace/github/solution-hub/solution-simulator/video-osd-simulator/video-osd-simulator-sample/src/main/resources/application-mysql.yml:1)。
+
+当前本地联调环境按你现在的真实端口写法如下：
+
+```yaml
+simulator:
+  ffmpeg:
+    path: ffmpeg
+  osd:
+    websocket-endpoint: ws://127.0.0.1:18083/osd
+    publish-time-start: 2026-06-29T10:00:00
+    publish-time-end: 2026-06-29T10:30:00
+  video:
+    source-file: C:/Users/44527/Downloads/trailer_video_test.mp4
+  zlm:
+    host: 127.0.0.1
+    rtmp-port: 7935
+    rtsp-port: 8554
+    rtc-port: 10000
+    app: live
+    stream: drone001
+```
+
+说明：
+
+- `publish-time-start` 和 `publish-time-end` 用于限定 OSD 回放时间窗。
+- OSD 回放不是固定毫秒轮询，而是以时间窗内最小 `publish_time` 为起点，后续每条消息都按它和上一条记录的时间差发送。
+- `publish_time` 为空的记录不会参与本轮回放。
+- 当前版本默认新建任务协议为 `RTMP`，这样更适合先完成整体流程验证。
+
+## 启动方式
+
+使用 MySQL profile 启动：
+
+```bash
+mvn -pl solution-simulator/video-osd-simulator/video-osd-simulator-sample -am spring-boot:run -Dspring-boot.run.profiles=mysql
+```
+
+数据库信息：
+
+- URL：`jdbc:mysql://localhost:3306/xm_test?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai`
+- 用户名：`root`
+- 密码：`Win@2026!`
+- 表：`device_telemetry_sub`
+
+## 需要准备哪些表
+
+如果你用 MySQL 跑完整链路，至少需要这些表：
+
+- `device_telemetry_sub`
+- `sim_stream_task`
+- `sim_task_run_log`
+
+`device_telemetry_sub` 是 OSD 数据源表，应用会按任务里的 `osd_publish_time_start`、`osd_publish_time_end` 过滤，并按 `publish_time asc, id asc` 顺序发送。
+
+`sim_task_run_log` 在 MySQL 中不要用 `CLOB`，改成 `LONGTEXT`：
+
+```sql
+CREATE TABLE sim_task_run_log (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  task_id BIGINT,
+  event_type VARCHAR(64),
+  status VARCHAR(32),
+  message VARCHAR(1024),
+  command_line LONGTEXT,
+  sent_count INT DEFAULT 0,
+  create_time TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+H2 里的 `DATEADD(...)` 语法不能直接搬到 MySQL，请改用 `DATE_ADD` / `DATE_SUB` 或者直接写固定时间。
+
+## 推荐任务写法
+
+当前建议任务协议直接使用 `RTMP`，由服务端推到 ZLM，再让前端通过 WebRTC 拉：
+
+```bash
+curl -X POST http://localhost:18083/simulator/stream-task/add ^
+  -H "Content-Type: application/json" ^
+  -d "{\"taskName\":\"demo-rtmp-webrtc-play\",\"videoFilePath\":\"C:/Users/44527/Downloads/trailer_video_test.mp4\",\"zlmHost\":\"127.0.0.1\",\"zlmPort\":7935,\"app\":\"live\",\"stream\":\"drone001\",\"protocol\":\"RTMP\",\"loopEnabled\":true,\"ffmpegOptions\":\"-re\",\"osdPublishTimeStart\":\"2026-06-29T10:00:00\",\"osdPublishTimeEnd\":\"2026-06-29T10:30:00\"}"
+```
+
+启动任务：
+
+```bash
+curl -X POST http://localhost:18083/simulator/stream-task/start/1
+```
+
+停止任务：
+
+```bash
+curl -X POST http://localhost:18083/simulator/stream-task/stop/1
+```
+
+查询状态：
+
+```bash
+curl http://localhost:18083/simulator/stream-task/status/1
+```
+
+## 一次性联调案例
+
+### 1. 后端侧
+
+1. 确认 MySQL 容器 `kh-mysql` 正常运行，且 `xm_test.device_telemetry_sub` 中存在带 `publish_time` 的测试数据。
+2. 确认 ZLMediaKit 容器 `zlm` 正常运行，关键端口如下：
+   - HTTP：`8086`
+   - RTMP：`7935`
+   - RTSP：`8554`
+   - RTC：`10000`
+3. 确认本机命令行能执行：
+
+```bash
+ffmpeg -version
+```
+
+4. 启动 `video-osd-simulator-sample` 的 MySQL profile。
+5. 新增一条 `RTMP` 任务记录。
+6. 调用 `/simulator/stream-task/start/{id}`。
+
+### 2. ZLM 侧检查
+
+任务启动后，视频会先推到：
+
+```text
+rtmp://127.0.0.1:7935/live/drone001
+```
+
+浏览器拉流可直接打开 ZLM 自带页面：
+
+```text
+http://localhost:8086/webrtc/index.html?app=live&stream=drone001&type=play
+```
+
+这个页面是我刚根据你本机 `http://localhost:8086/webrtc/index.html` 实际内容确认过的，页面内部默认就是走：
+
+```text
+/index/api/webrtc?app=live&stream=drone001&type=play
+```
+
+如果画面能出来，说明 `RTMP -> ZLM -> WebRTC play` 这条链路已经通了。
+
+### 3. OSD 侧检查
+
+OSD 通过下面这个 WebSocket 地址发出：
+
+```text
+ws://127.0.0.1:18083/osd
+```
+
+你可以先用一个最小 HTML 页面验证时间节奏：
+
+```html
+<!doctype html>
+<html lang="zh-CN">
+<body>
+  <h3>OSD Monitor</h3>
+  <pre id="osd"></pre>
+  <script>
+    const osdBox = document.getElementById('osd');
+    const socket = new WebSocket('ws://127.0.0.1:18083/osd');
+    let previous = null;
+    socket.onmessage = (event) => {
+      const now = Date.now();
+      const diff = previous === null ? 0 : now - previous;
+      previous = now;
+      osdBox.textContent =
+        new Date(now).toISOString() +
+        '  gap=' + diff + 'ms' +
+        '\n' + event.data + '\n\n' + osdBox.textContent;
+    };
+  </script>
+</body>
+</html>
+```
+
+观察重点：
+
+- 第一条 OSD 会立即发送。
+- 第二条开始，发送间隔应接近数据库里相邻两条记录的 `publish_time` 差值。
+- 如果多条记录 `publish_time` 相同，它们会按 `id` 顺序连续发出。
+
+## 前端接入建议
+
+建议前端先分成两路接：
+
+1. 视频：直接接 ZLM 的 WebRTC 播放地址。
+2. OSD：连接 `ws://127.0.0.1:18083/osd`，把 JSON 渲染为叠加层。
+
+最简单的首轮验证方式是：
+
+1. 浏览器先打开 ZLM 自带的 WebRTC 播放页，确认有画面。
+2. 同时打开 OSD WebSocket 调试页，确认 OSD 正在按 `publish_time` 节奏到达。
+3. 前端 demo 再把这两块合并到一个页面里。
+
+## 关于 WebRTC 推流工具
+
+当前这版不要求你本机先安装 `webrtc-pusher`。因为我们现在优先走的是：
+
+```text
+ffmpeg -> RTMP push to ZLM -> browser WebRTC play
+```
+
+后续如果你还想继续验证“服务端直接 WebRTC 推流”，再补 `GStreamer` 或其他外部 WebRTC/WHIP 推流工具即可。当前代码里 `WEBRTC` 协议和 `webrtcCommandTemplate` 仍然保留，方便下一轮继续扩展。
+
+## 本地验证
+
+H2 默认运行：
+
+```bash
+mvn -pl solution-simulator/video-osd-simulator/video-osd-simulator-sample -am spring-boot:run
+```
+
+模块测试：
+
+```bash
+mvn -pl solution-simulator/video-osd-simulator/video-osd-simulator-core,solution-simulator/video-osd-simulator/video-osd-simulator-sample -am test
+```
+
+Docker 运行前先打包：
+
+```bash
+mvn -pl solution-simulator/video-osd-simulator/video-osd-simulator-sample -am package
+```

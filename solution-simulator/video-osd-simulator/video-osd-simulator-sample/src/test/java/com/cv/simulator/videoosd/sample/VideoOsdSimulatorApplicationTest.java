@@ -1,6 +1,7 @@
 package com.cv.simulator.videoosd.sample;
 
 import com.cv.boot.mybatisplus.pojo.vo.PageInfoVO;
+import com.cv.simulator.videoosd.core.enums.StreamProtocol;
 import com.cv.simulator.videoosd.sample.pojo.entity.DeviceTelemetryEntity;
 import com.cv.simulator.videoosd.sample.pojo.entity.StreamTaskEntity;
 import com.cv.simulator.videoosd.sample.pojo.query.StreamTaskPageQuery;
@@ -32,7 +33,8 @@ class VideoOsdSimulatorApplicationTest {
 
         assertTrue(taskPage.getTotal() >= 1);
         assertTrue(telemetryPage.getTotal() >= 1);
-        assertEquals("demo-webrtc-task", taskPage.getRecords().get(0).getTaskName());
+        assertEquals("demo-rtmp-task", taskPage.getRecords().get(0).getTaskName());
+        assertEquals(StreamProtocol.RTMP.name(), taskPage.getRecords().get(0).getProtocol());
         assertEquals("dock-001", telemetryPage.getRecords().get(0).getDeviceSn());
     }
 
@@ -46,5 +48,16 @@ class VideoOsdSimulatorApplicationTest {
 
         assertEquals(1L, telemetryPage.getTotal());
         assertEquals("dock-001", telemetryPage.getRecords().get(0).getDeviceSn());
+    }
+
+    @Test
+    void defaultsNewTaskToRtmpProtocol() {
+        StreamTaskEntity entity = new StreamTaskEntity();
+        entity.setTaskName("default-protocol-task");
+
+        Long id = streamTaskService.add(entity);
+        StreamTaskEntity saved = streamTaskService.detail(id);
+
+        assertEquals(StreamProtocol.RTMP.name(), saved.getProtocol());
     }
 }

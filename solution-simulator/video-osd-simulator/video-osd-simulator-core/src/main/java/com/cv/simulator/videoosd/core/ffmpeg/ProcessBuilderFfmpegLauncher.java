@@ -13,7 +13,8 @@ public class ProcessBuilderFfmpegLauncher implements FfmpegProcessLauncher {
                     .start();
             return new JavaProcessHandle(process);
         } catch (IOException e) {
-            throw new IllegalStateException("failed to start ffmpeg process", e);
+            String executable = command == null || command.isEmpty() ? "unknown" : command.get(0);
+            throw new IllegalStateException("failed to start stream process: " + executable, e);
         }
     }
 

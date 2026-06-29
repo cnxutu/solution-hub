@@ -43,9 +43,9 @@ simulator:
     source-file:
   zlm:
     host: 127.0.0.1
-    rtmp-port: 1935
-    rtsp-port: 554
-    rtc-port: 8080
+    rtmp-port: 7935
+    rtsp-port: 8554
+    rtc-port: 10000
     app: live
     stream: drone001
   webrtc:

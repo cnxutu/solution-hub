@@ -9,6 +9,7 @@ import com.cv.simulator.videoosd.core.osd.OsdPayloadSupport;
 import com.cv.simulator.videoosd.core.runtime.StreamTaskRuntime;
 import com.cv.simulator.videoosd.core.webrtc.ExternalWebRtcCommandBuilder;
 import com.cv.simulator.videoosd.core.websocket.WebSocketOsdSender;
+import com.cv.simulator.videoosd.sample.service.PublishTimeReplayExecutor;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -55,5 +56,10 @@ public class SimulatorCoreConfig {
     @Bean
     public ExternalWebRtcCommandBuilder externalWebRtcCommandBuilder() {
         return new ExternalWebRtcCommandBuilder();
+    }
+
+    @Bean
+    public PublishTimeReplayExecutor publishTimeReplayExecutor() {
+        return new PublishTimeReplayExecutor();
     }
 }
