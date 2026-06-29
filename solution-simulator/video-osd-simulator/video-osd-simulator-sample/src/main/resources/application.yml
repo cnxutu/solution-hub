@@ -36,3 +36,17 @@ simulator:
   osd:
     websocket-endpoint: ws://127.0.0.1:18083/osd
     fixed-interval-millis: 1000
+    publish-time-start:
+    publish-time-end:
+  video:
+    source-directory: ./sample-videos
+    source-file:
+  zlm:
+    host: 127.0.0.1
+    rtmp-port: 1935
+    rtsp-port: 554
+    rtc-port: 8080
+    app: live
+    stream: drone001
+  webrtc:
+    push-command-template: webrtc-pusher --input "{videoFile}" --host {zlmHost} --app {app} --stream {stream}

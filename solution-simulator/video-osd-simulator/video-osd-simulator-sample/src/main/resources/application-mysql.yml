@@ -1,0 +1,21 @@
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/xm_test?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
+    username: root
+    password: Win@2026!
+  sql:
+    init:
+      mode: never
+
+simulator:
+  osd:
+    publish-time-start:
+    publish-time-end:
+  zlm:
+    host: 127.0.0.1
+    rtmp-port: 1935
+    rtsp-port: 554
+    rtc-port: 8080
+    app: live
+    stream: drone001

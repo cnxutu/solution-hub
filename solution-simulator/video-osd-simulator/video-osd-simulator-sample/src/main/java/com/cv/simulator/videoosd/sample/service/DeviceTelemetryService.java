@@ -11,6 +11,7 @@ import com.cv.simulator.videoosd.core.websocket.WebSocketOsdSender;
 import com.cv.simulator.videoosd.sample.config.SimulatorProperties;
 import com.cv.simulator.videoosd.sample.mapper.DeviceTelemetryMapper;
 import com.cv.simulator.videoosd.sample.pojo.entity.DeviceTelemetryEntity;
+import com.cv.simulator.videoosd.sample.pojo.entity.StreamTaskEntity;
 import com.cv.simulator.videoosd.sample.pojo.query.DeleteIdsQuery;
 import com.cv.simulator.videoosd.sample.pojo.query.TelemetryPageQuery;
 import org.springframework.scheduling.annotation.Async;
@@ -50,6 +51,10 @@ public class DeviceTelemetryService extends ServiceImpl<DeviceTelemetryMapper, D
                         DeviceTelemetryEntity::getDeviceSn, query.getDeviceSn())
                 .eq(query.getTrackId() != null && !query.getTrackId().trim().isEmpty(),
                         DeviceTelemetryEntity::getTrackId, query.getTrackId())
+                .ge(query.getPublishTimeStart() != null,
+                        DeviceTelemetryEntity::getPublishTime, query.getPublishTimeStart())
+                .le(query.getPublishTimeEnd() != null,
+                        DeviceTelemetryEntity::getPublishTime, query.getPublishTimeEnd())
                 .orderByAsc(DeviceTelemetryEntity::getPublishTime)
                 .orderByAsc(DeviceTelemetryEntity::getId)
                 .page(new Page<>(query.getCurrent(), query.getSize()));
@@ -105,10 +110,15 @@ public class DeviceTelemetryService extends ServiceImpl<DeviceTelemetryMapper, D
     }
 
     @Async
-    public void replayByTask(Long taskId) {
+    public void replayByTask(StreamTaskEntity task) {
+        Long taskId = task.getId();
+        LocalDateTime publishTimeStart = resolvePublishTimeStart(task);
+        LocalDateTime publishTimeEnd = resolvePublishTimeEnd(task);
         List<DeviceTelemetryEntity> rows = lambdaQuery()
                 .eq(DeviceTelemetryEntity::getTaskId, taskId)
                 .eq(DeviceTelemetryEntity::getIsDeleted, 0)
+                .ge(publishTimeStart != null, DeviceTelemetryEntity::getPublishTime, publishTimeStart)
+                .le(publishTimeEnd != null, DeviceTelemetryEntity::getPublishTime, publishTimeEnd)
                 .orderByAsc(DeviceTelemetryEntity::getPublishTime)
                 .orderByAsc(DeviceTelemetryEntity::getId)
                 .list();
@@ -119,6 +129,12 @@ public class DeviceTelemetryService extends ServiceImpl<DeviceTelemetryMapper, D
             sleep(properties.getOsd().getFixedIntervalMillis());
         }
         runLogService.record(taskId, "OSD_REPLAY", "STOPPED", "osd replay completed", null, sent);
+    }
+
+    public void replayByTask(Long taskId) {
+        StreamTaskEntity task = new StreamTaskEntity();
+        task.setId(taskId);
+        replayByTask(task);
     }
 
     private DeviceTelemetryEntity fromRecord(DeviceTelemetryRecord record) {
@@ -152,5 +168,26 @@ public class DeviceTelemetryService extends ServiceImpl<DeviceTelemetryMapper, D
             Thread.currentThread().interrupt();
             throw new IllegalStateException("osd replay interrupted", e);
         }
+    }
+
+    private LocalDateTime resolvePublishTimeStart(StreamTaskEntity task) {
+        if (task.getOsdPublishTimeStart() != null) {
+            return task.getOsdPublishTimeStart();
+        }
+        return parseDateTime(properties.getOsd().getPublishTimeStart());
+    }
+
+    private LocalDateTime resolvePublishTimeEnd(StreamTaskEntity task) {
+        if (task.getOsdPublishTimeEnd() != null) {
+            return task.getOsdPublishTimeEnd();
+        }
+        return parseDateTime(properties.getOsd().getPublishTimeEnd());
+    }
+
+    private LocalDateTime parseDateTime(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return null;
+        }
+        return LocalDateTime.parse(value.trim());
     }
 }

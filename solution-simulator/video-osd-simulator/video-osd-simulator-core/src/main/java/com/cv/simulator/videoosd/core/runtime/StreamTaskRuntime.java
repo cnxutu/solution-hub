@@ -21,7 +21,7 @@ public class StreamTaskRuntime {
     public StreamTaskSnapshot start(Long taskId, List<String> command) {
         FfmpegProcessHandle handle = processLauncher.launch(command);
         handles.put(taskId, handle);
-        return snapshot(taskId, TaskStatus.RUNNING, "ffmpeg process started");
+        return snapshot(taskId, TaskStatus.RUNNING, "stream process started");
     }
 
     public StreamTaskSnapshot stop(Long taskId) {
@@ -35,7 +35,7 @@ public class StreamTaskRuntime {
     public StreamTaskSnapshot status(Long taskId) {
         FfmpegProcessHandle handle = handles.get(taskId);
         if (handle == null) {
-            return snapshot(taskId, TaskStatus.STOPPED, "no active ffmpeg process");
+            return snapshot(taskId, TaskStatus.STOPPED, "no active stream process");
         }
         return snapshot(taskId, handle.isAlive() ? TaskStatus.RUNNING : TaskStatus.FAILED, "runtime status checked");
     }

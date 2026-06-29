@@ -56,7 +56,7 @@ public class StreamTaskController {
     @PostMapping("/start/{id}")
     public ApiResult<StreamTaskSnapshot> start(@PathVariable Long id) {
         StreamTaskSnapshot snapshot = streamTaskService.start(id);
-        telemetryService.replayByTask(id);
+        telemetryService.replayByTask(streamTaskService.detail(id));
         return ApiResult.success(snapshot);
     }
 

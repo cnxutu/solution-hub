@@ -11,6 +11,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 
+import java.time.LocalDateTime;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -30,7 +32,19 @@ class VideoOsdSimulatorApplicationTest {
 
         assertTrue(taskPage.getTotal() >= 1);
         assertTrue(telemetryPage.getTotal() >= 1);
-        assertEquals("demo-rtmp-task", taskPage.getRecords().get(0).getTaskName());
+        assertEquals("demo-webrtc-task", taskPage.getRecords().get(0).getTaskName());
+        assertEquals("dock-001", telemetryPage.getRecords().get(0).getDeviceSn());
+    }
+
+    @Test
+    void filtersTelemetryByPublishTimeRange() {
+        TelemetryPageQuery query = new TelemetryPageQuery();
+        query.setPublishTimeStart(LocalDateTime.now().minusMinutes(5));
+        query.setPublishTimeEnd(LocalDateTime.now().plusMinutes(5));
+
+        PageInfoVO<DeviceTelemetryEntity> telemetryPage = telemetryService.pageList(query);
+
+        assertEquals(1L, telemetryPage.getTotal());
         assertEquals("dock-001", telemetryPage.getRecords().get(0).getDeviceSn());
     }
 }

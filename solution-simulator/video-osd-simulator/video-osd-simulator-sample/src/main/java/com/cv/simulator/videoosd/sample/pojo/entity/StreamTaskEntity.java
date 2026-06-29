@@ -14,14 +14,18 @@ public class StreamTaskEntity {
     private Long id;
     private String taskName;
     private String videoDirectory;
+    private String videoFilePath;
     private String filePattern;
     private String zlmHost;
     private Integer zlmPort;
     private String app;
     private String stream;
     private String protocol;
+    private String webrtcCommandTemplate;
     private Boolean loopEnabled;
     private String ffmpegOptions;
+    private LocalDateTime osdPublishTimeStart;
+    private LocalDateTime osdPublishTimeEnd;
     private String status;
     private String lastMessage;
     private LocalDateTime createTime;

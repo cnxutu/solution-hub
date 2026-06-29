@@ -12,6 +12,8 @@ import com.cv.simulator.videoosd.core.ffmpeg.FfmpegPathResolver;
 import com.cv.simulator.videoosd.core.media.VideoSourceScanner;
 import com.cv.simulator.videoosd.core.runtime.StreamTaskRuntime;
 import com.cv.simulator.videoosd.core.runtime.StreamTaskSnapshot;
+import com.cv.simulator.videoosd.core.webrtc.ExternalWebRtcCommandBuilder;
+import com.cv.simulator.videoosd.core.webrtc.ExternalWebRtcCommandRequest;
 import com.cv.simulator.videoosd.sample.config.SimulatorProperties;
 import com.cv.simulator.videoosd.sample.mapper.StreamTaskMapper;
 import com.cv.simulator.videoosd.sample.pojo.entity.StreamTaskEntity;
@@ -35,6 +37,7 @@ public class StreamTaskService extends ServiceImpl<StreamTaskMapper, StreamTaskE
     private final FfmpegPathResolver ffmpegPathResolver;
     private final VideoSourceScanner videoSourceScanner;
     private final FfmpegCommandBuilder commandBuilder;
+    private final ExternalWebRtcCommandBuilder externalWebRtcCommandBuilder;
     private final StreamTaskRuntime runtime;
     private final TaskRunLogService runLogService;
 
@@ -42,12 +45,14 @@ public class StreamTaskService extends ServiceImpl<StreamTaskMapper, StreamTaskE
                              FfmpegPathResolver ffmpegPathResolver,
                              VideoSourceScanner videoSourceScanner,
                              FfmpegCommandBuilder commandBuilder,
+                             ExternalWebRtcCommandBuilder externalWebRtcCommandBuilder,
                              StreamTaskRuntime runtime,
                              TaskRunLogService runLogService) {
         this.properties = properties;
         this.ffmpegPathResolver = ffmpegPathResolver;
         this.videoSourceScanner = videoSourceScanner;
         this.commandBuilder = commandBuilder;
+        this.externalWebRtcCommandBuilder = externalWebRtcCommandBuilder;
         this.runtime = runtime;
         this.runLogService = runLogService;
     }
@@ -99,24 +104,29 @@ public class StreamTaskService extends ServiceImpl<StreamTaskMapper, StreamTaskE
     @Transactional(rollbackFor = Exception.class)
     public StreamTaskSnapshot start(Long id) {
         StreamTaskEntity task = detail(id);
+        Path videoFile = resolveVideoFile(task);
+        List<String> command;
         if (StreamProtocol.WEBRTC.name().equalsIgnoreCase(task.getProtocol())) {
-            throw new IllegalArgumentException("WEBRTC is reserved but not supported by this simulator version");
+            command = externalWebRtcCommandBuilder.build(new ExternalWebRtcCommandRequest(
+                    resolveWebRtcCommandTemplate(task),
+                    videoFile,
+                    task.getZlmHost(),
+                    task.getApp(),
+                    task.getStream()
+            ));
+        } else {
+            command = commandBuilder.build(new FfmpegCommandRequest(
+                    ffmpegPathResolver.resolve(properties.getFfmpeg().getPath()),
+                    videoFile,
+                    StreamProtocol.valueOf(task.getProtocol()),
+                    task.getZlmHost(),
+                    task.getZlmPort(),
+                    task.getApp(),
+                    task.getStream(),
+                    Boolean.TRUE.equals(task.getLoopEnabled()),
+                    splitOptions(task.getFfmpegOptions())
+            ));
         }
-        List<Path> files = videoSourceScanner.scan(Paths.get(task.getVideoDirectory()), task.getFilePattern());
-        if (files.isEmpty()) {
-            throw new IllegalArgumentException("no video files found in directory: " + task.getVideoDirectory());
-        }
-        List<String> command = commandBuilder.build(new FfmpegCommandRequest(
-                ffmpegPathResolver.resolve(properties.getFfmpeg().getPath()),
-                files.get(0),
-                StreamProtocol.valueOf(task.getProtocol()),
-                task.getZlmHost(),
-                task.getZlmPort(),
-                task.getApp(),
-                task.getStream(),
-                Boolean.TRUE.equals(task.getLoopEnabled()),
-                splitOptions(task.getFfmpegOptions())
-        ));
         StreamTaskSnapshot snapshot = runtime.start(id, command);
         updateStatus(id, snapshot.getStatus(), snapshot.getMessage());
         runLogService.record(id, "STREAM_START", snapshot.getStatus().name(), snapshot.getMessage(), String.join(" ", command), 0);
@@ -136,7 +146,7 @@ public class StreamTaskService extends ServiceImpl<StreamTaskMapper, StreamTaskE
 
     private void fillDefaults(StreamTaskEntity entity) {
         if (entity.getProtocol() == null) {
-            entity.setProtocol(StreamProtocol.RTMP.name());
+            entity.setProtocol(StreamProtocol.WEBRTC.name());
         }
         if (entity.getStatus() == null) {
             entity.setStatus(TaskStatus.CREATED.name());
@@ -144,8 +154,36 @@ public class StreamTaskService extends ServiceImpl<StreamTaskMapper, StreamTaskE
         if (entity.getLoopEnabled() == null) {
             entity.setLoopEnabled(true);
         }
+        if (entity.getVideoDirectory() == null || entity.getVideoDirectory().trim().isEmpty()) {
+            entity.setVideoDirectory(properties.getVideo().getSourceDirectory());
+        }
+        if (entity.getVideoFilePath() == null || entity.getVideoFilePath().trim().isEmpty()) {
+            entity.setVideoFilePath(properties.getVideo().getSourceFile());
+        }
         if (entity.getFilePattern() == null || entity.getFilePattern().trim().isEmpty()) {
             entity.setFilePattern(properties.getFfmpeg().getInputPatterns());
+        }
+        if (entity.getZlmHost() == null || entity.getZlmHost().trim().isEmpty()) {
+            entity.setZlmHost(properties.getZlm().getHost());
+        }
+        if (entity.getZlmPort() == null) {
+            entity.setZlmPort(StreamProtocol.RTSP.name().equalsIgnoreCase(entity.getProtocol())
+                    ? properties.getZlm().getRtspPort() : properties.getZlm().getRtmpPort());
+        }
+        if (entity.getApp() == null || entity.getApp().trim().isEmpty()) {
+            entity.setApp(properties.getZlm().getApp());
+        }
+        if (entity.getStream() == null || entity.getStream().trim().isEmpty()) {
+            entity.setStream(properties.getZlm().getStream());
+        }
+        if (entity.getWebrtcCommandTemplate() == null || entity.getWebrtcCommandTemplate().trim().isEmpty()) {
+            entity.setWebrtcCommandTemplate(properties.getWebrtc().getPushCommandTemplate());
+        }
+        if (entity.getOsdPublishTimeStart() == null) {
+            entity.setOsdPublishTimeStart(parseDateTime(properties.getOsd().getPublishTimeStart()));
+        }
+        if (entity.getOsdPublishTimeEnd() == null) {
+            entity.setOsdPublishTimeEnd(parseDateTime(properties.getOsd().getPublishTimeEnd()));
         }
     }
 
@@ -163,5 +201,30 @@ public class StreamTaskService extends ServiceImpl<StreamTaskMapper, StreamTaskE
             return Collections.emptyList();
         }
         return Arrays.stream(options.trim().split("\\s+")).collect(Collectors.toList());
+    }
+
+    private Path resolveVideoFile(StreamTaskEntity task) {
+        if (task.getVideoFilePath() != null && !task.getVideoFilePath().trim().isEmpty()) {
+            return Paths.get(task.getVideoFilePath());
+        }
+        List<Path> files = videoSourceScanner.scan(Paths.get(task.getVideoDirectory()), task.getFilePattern());
+        if (files.isEmpty()) {
+            throw new IllegalArgumentException("no video files found in directory: " + task.getVideoDirectory());
+        }
+        return files.get(0);
+    }
+
+    private String resolveWebRtcCommandTemplate(StreamTaskEntity task) {
+        if (task.getWebrtcCommandTemplate() != null && !task.getWebrtcCommandTemplate().trim().isEmpty()) {
+            return task.getWebrtcCommandTemplate();
+        }
+        return properties.getWebrtc().getPushCommandTemplate();
+    }
+
+    private LocalDateTime parseDateTime(String value) {
+        if (value == null || value.trim().isEmpty()) {
+            return null;
+        }
+        return LocalDateTime.parse(value.trim());
     }
 }
