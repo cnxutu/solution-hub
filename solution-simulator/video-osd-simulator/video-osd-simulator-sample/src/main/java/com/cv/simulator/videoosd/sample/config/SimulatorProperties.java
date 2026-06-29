@@ -21,8 +21,9 @@ public class SimulatorProperties {
 
     @Data
     public static class Osd {
-        private String websocketEndpoint = "ws://127.0.0.1:18083/osd";
+        private String websocketEndpoint = "ws://127.0.0.1:18083/ws/osd";
         private long fixedIntervalMillis = 1000L;
+        private boolean requireTaskIdMatch = false;
         private String publishTimeStart;
         private String publishTimeEnd;
     }
@@ -36,6 +37,7 @@ public class SimulatorProperties {
     @Data
     public static class Zlm {
         private String host = "127.0.0.1";
+        private Integer httpPort = 8086;
         private Integer rtmpPort = 7935;
         private Integer rtspPort = 8554;
         private Integer rtcPort = 10000;

@@ -5,19 +5,13 @@ spring:
   application:
     name: video-osd-simulator
   datasource:
-    driver-class-name: org.h2.Driver
-    url: jdbc:h2:mem:video-osd-simulator;MODE=MySQL;DATABASE_TO_LOWER=TRUE;DB_CLOSE_DELAY=-1
-    username: sa
-    password:
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/xm_test?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
+    username: root
+    password: Win@2026!
   sql:
     init:
-      mode: always
-      schema-locations: classpath:sql/schema-h2.sql
-      data-locations: classpath:sql/data-h2.sql
+      mode: never
 
 mybatis-plus:
   configuration:
@@ -31,11 +25,12 @@ mybatis-plus:
 
 simulator:
   ffmpeg:
-    path: ffmpeg
+    path: "C:/Users/44527/AppData/Local/Microsoft/WinGet/Packages/Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe/ffmpeg-8.1.1-full_build/bin/ffmpeg.exe"
     input-patterns: "*.mp4,*.flv,*.mov,*.mkv"
   osd:
-    websocket-endpoint: ws://127.0.0.1:18083/osd
+    websocket-endpoint: ws://127.0.0.1:18083/ws/osd
     fixed-interval-millis: 1000
+    require-task-id-match: false
     publish-time-start:
     publish-time-end:
   video:
@@ -43,6 +38,7 @@ simulator:
     source-file:
   zlm:
     host: 127.0.0.1
+    http-port: 8086
     rtmp-port: 7935
     rtsp-port: 8554
     rtc-port: 10000

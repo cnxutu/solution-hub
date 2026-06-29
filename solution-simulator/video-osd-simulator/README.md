@@ -22,21 +22,28 @@
 
 - 任务表 `sim_stream_task` 的 CRUD 与启动、停止、状态查询。
 - OSD 表 `device_telemetry_sub` 的 CRUD、JSON 上传、Excel 导入。
-- `application.yml` 提供本地 H2 默认配置。
-- `application-mysql.yml` 提供对接 `xm_test` 的 MySQL 示例配置。
+- `application.yml` 直接提供 MySQL 运行配置。
 
 ## 当前推荐配置
 
-MySQL profile 配置文件见 [application-mysql.yml](D:/workspace/github/solution-hub/solution-simulator/video-osd-simulator/video-osd-simulator-sample/src/main/resources/application-mysql.yml:1)。
+当前 sample 已经收敛为单一 MySQL 方案，不再保留 H2/profile 分流逻辑。
 
 当前本地联调环境按你现在的真实端口写法如下：
 
 ```yaml
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/xm_test?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai
+    username: root
+    password: Win@2026!
+
 simulator:
   ffmpeg:
     path: ffmpeg
   osd:
-    websocket-endpoint: ws://127.0.0.1:18083/osd
+    websocket-endpoint: ws://127.0.0.1:18083/ws/osd
+    require-task-id-match: false
     publish-time-start: 2026-06-29T10:00:00
     publish-time-end: 2026-06-29T10:30:00
   video:
@@ -53,16 +60,19 @@ simulator:
 说明：
 
 - `publish-time-start` 和 `publish-time-end` 用于限定 OSD 回放时间窗。
+- `require-task-id-match=false` 时，OSD 按时间窗查询，不强依赖 `device_telemetry_sub.task_id`。
+- `require-task-id-match=true` 时，OSD 会额外要求 `device_telemetry_sub.task_id = 当前任务id`。
+- 当前 `RTMP` 推流默认会转码为更适合浏览器 WebRTC 拉流验证的 `H.264 + AAC`，不再直接 `copy` 原视频编码。
 - OSD 回放不是固定毫秒轮询，而是以时间窗内最小 `publish_time` 为起点，后续每条消息都按它和上一条记录的时间差发送。
 - `publish_time` 为空的记录不会参与本轮回放。
 - 当前版本默认新建任务协议为 `RTMP`，这样更适合先完成整体流程验证。
 
 ## 启动方式
 
-使用 MySQL profile 启动：
+当前默认直接启动就是 MySQL：
 
 ```bash
-mvn -pl solution-simulator/video-osd-simulator/video-osd-simulator-sample -am spring-boot:run -Dspring-boot.run.profiles=mysql
+mvn -pl solution-simulator/video-osd-simulator/video-osd-simulator-sample -am spring-boot:run
 ```
 
 数据库信息：
@@ -82,6 +92,8 @@ mvn -pl solution-simulator/video-osd-simulator/video-osd-simulator-sample -am sp
 
 `device_telemetry_sub` 是 OSD 数据源表，应用会按任务里的 `osd_publish_time_start`、`osd_publish_time_end` 过滤，并按 `publish_time asc, id asc` 顺序发送。
 
+默认情况下不要求 `task_id` 必须等于任务 id；如果你希望一条任务只回放自己绑定的数据，可以把 `simulator.osd.require-task-id-match` 改成 `true`。
+
 `sim_task_run_log` 在 MySQL 中不要用 `CLOB`，改成 `LONGTEXT`：
 
 ```sql
@@ -97,7 +109,7 @@ CREATE TABLE sim_task_run_log (
 );
 ```
 
-H2 里的 `DATEADD(...)` 语法不能直接搬到 MySQL，请改用 `DATE_ADD` / `DATE_SUB` 或者直接写固定时间。
+如果你之前参考过旧版 H2 示例，请忽略其中的 `DATEADD(...)` 语法；当前 sample 已经不再保留 H2 初始化逻辑。
 
 ## 推荐任务写法
 
@@ -143,7 +155,7 @@ curl http://localhost:18083/simulator/stream-task/status/1
 ffmpeg -version
 ```
 
-4. 启动 `video-osd-simulator-sample` 的 MySQL profile。
+4. 确认 `application.yml` 中的 MySQL 地址、账号、密码正确，然后启动 `video-osd-simulator-sample`。
 5. 新增一条 `RTMP` 任务记录。
 6. 调用 `/simulator/stream-task/start/{id}`。
 
@@ -169,12 +181,14 @@ http://localhost:8086/webrtc/index.html?app=live&stream=drone001&type=play
 
 如果画面能出来，说明 `RTMP -> ZLM -> WebRTC play` 这条链路已经通了。
 
+注意这里的 `stream` 要和任务里的 `stream` 字段一致。当前默认示例是 `drone001`，不要再用 `stream=test` 去测默认任务。
+
 ### 3. OSD 侧检查
 
-OSD 通过下面这个 WebSocket 地址发出：
+OSD 通过应用内置的 WebSocket 服务端对外广播：
 
 ```text
-ws://127.0.0.1:18083/osd
+ws://127.0.0.1:18083/ws/osd
 ```
 
 你可以先用一个最小 HTML 页面验证时间节奏：
@@ -187,7 +201,7 @@ ws://127.0.0.1:18083/osd
   <pre id="osd"></pre>
   <script>
     const osdBox = document.getElementById('osd');
-    const socket = new WebSocket('ws://127.0.0.1:18083/osd');
+    const socket = new WebSocket('ws://127.0.0.1:18083/ws/osd');
     let previous = null;
     socket.onmessage = (event) => {
       const now = Date.now();
@@ -214,7 +228,7 @@ ws://127.0.0.1:18083/osd
 建议前端先分成两路接：
 
 1. 视频：直接接 ZLM 的 WebRTC 播放地址。
-2. OSD：连接 `ws://127.0.0.1:18083/osd`，把 JSON 渲染为叠加层。
+2. OSD：连接 `ws://127.0.0.1:18083/ws/osd`，把 JSON 渲染为叠加层。
 
 最简单的首轮验证方式是：
 
@@ -233,12 +247,6 @@ ffmpeg -> RTMP push to ZLM -> browser WebRTC play
 后续如果你还想继续验证“服务端直接 WebRTC 推流”，再补 `GStreamer` 或其他外部 WebRTC/WHIP 推流工具即可。当前代码里 `WEBRTC` 协议和 `webrtcCommandTemplate` 仍然保留，方便下一轮继续扩展。
 
 ## 本地验证
-
-H2 默认运行：
-
-```bash
-mvn -pl solution-simulator/video-osd-simulator/video-osd-simulator-sample -am spring-boot:run
-```
 
 模块测试：
 

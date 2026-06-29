@@ -32,7 +32,13 @@ class FfmpegCommandBuilderTest {
         assertEquals(List.of(
                 "ffmpeg", "-re", "-stream_loop", "-1",
                 "-i", "D:\\video dir\\demo.mp4",
-                "-c", "copy",
+                "-c:v", "libx264",
+                "-pix_fmt", "yuv420p",
+                "-profile:v", "baseline",
+                "-level", "3.1",
+                "-c:a", "aac",
+                "-ar", "44100",
+                "-b:a", "128k",
                 "-f", "flv",
                 "rtmp://127.0.0.1:1935/live/drone001"
         ), command);

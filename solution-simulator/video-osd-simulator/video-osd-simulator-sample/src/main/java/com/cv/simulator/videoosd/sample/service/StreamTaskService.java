@@ -19,6 +19,7 @@ import com.cv.simulator.videoosd.sample.mapper.StreamTaskMapper;
 import com.cv.simulator.videoosd.sample.pojo.entity.StreamTaskEntity;
 import com.cv.simulator.videoosd.sample.pojo.query.DeleteIdsQuery;
 import com.cv.simulator.videoosd.sample.pojo.query.StreamTaskPageQuery;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,6 +32,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@Slf4j
 public class StreamTaskService extends ServiceImpl<StreamTaskMapper, StreamTaskEntity> {
 
     private final SimulatorProperties properties;
@@ -127,7 +129,9 @@ public class StreamTaskService extends ServiceImpl<StreamTaskMapper, StreamTaskE
                     splitOptions(task.getFfmpegOptions())
             ));
         }
+        log.info("stream-task start preparing: {}", buildDebugSummary(task, videoFile, command, properties.getOsd().getWebsocketEndpoint(), properties.getZlm().getHttpPort()));
         StreamTaskSnapshot snapshot = runtime.start(id, command);
+        log.info("stream-task start result: taskId={}, status={}, message={}", id, snapshot.getStatus(), snapshot.getMessage());
         updateStatus(id, snapshot.getStatus(), snapshot.getMessage());
         runLogService.record(id, "STREAM_START", snapshot.getStatus().name(), snapshot.getMessage(), String.join(" ", command), 0);
         return snapshot;
@@ -135,13 +139,48 @@ public class StreamTaskService extends ServiceImpl<StreamTaskMapper, StreamTaskE
 
     public StreamTaskSnapshot stop(Long id) {
         StreamTaskSnapshot snapshot = runtime.stop(id);
+        log.info("stream-task stop result: taskId={}, status={}, message={}", id, snapshot.getStatus(), snapshot.getMessage());
         updateStatus(id, snapshot.getStatus(), snapshot.getMessage());
         runLogService.record(id, "STREAM_STOP", snapshot.getStatus().name(), snapshot.getMessage(), null, 0);
         return snapshot;
     }
 
     public StreamTaskSnapshot status(Long id) {
-        return runtime.status(id);
+        StreamTaskSnapshot snapshot = runtime.status(id);
+        log.info("stream-task runtime status: taskId={}, status={}, message={}", id, snapshot.getStatus(), snapshot.getMessage());
+        return snapshot;
+    }
+
+    static String buildDebugSummary(StreamTaskEntity task,
+                                    Path videoFile,
+                                    List<String> command,
+                                    String osdWebSocket,
+                                    Integer zlmHttpPort) {
+        String zlmHost = task.getZlmHost();
+        String app = task.getApp();
+        String stream = task.getStream();
+        String protocol = task.getProtocol();
+        String publishUrl = buildPublishUrl(task);
+        String playUrl = String.format("http://%s:%s/webrtc/index.html?app=%s&stream=%s&type=play",
+                zlmHost, zlmHttpPort, app, stream);
+        return "taskId=" + task.getId()
+                + ", taskName=" + task.getTaskName()
+                + ", protocol=" + protocol
+                + ", videoFile=" + videoFile
+                + ", publishUrl=" + publishUrl
+                + ", playUrl=" + playUrl
+                + ", osdWebSocket=" + osdWebSocket
+                + ", command=" + String.join(" ", command);
+    }
+
+    private static String buildPublishUrl(StreamTaskEntity task) {
+        if (StreamProtocol.RTSP.name().equalsIgnoreCase(task.getProtocol())) {
+            return String.format("rtsp://%s:%s/%s/%s", task.getZlmHost(), task.getZlmPort(), task.getApp(), task.getStream());
+        }
+        if (StreamProtocol.WEBRTC.name().equalsIgnoreCase(task.getProtocol())) {
+            return String.format("webrtc-command://%s/%s/%s", task.getZlmHost(), task.getApp(), task.getStream());
+        }
+        return String.format("rtmp://%s:%s/%s/%s", task.getZlmHost(), task.getZlmPort(), task.getApp(), task.getStream());
     }
 
     private void fillDefaults(StreamTaskEntity entity) {

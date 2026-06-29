@@ -10,4 +10,4 @@ services:
       - ./sample-videos:/app/sample-videos
     environment:
       SIMULATOR_FFMPEG_PATH: ffmpeg
-      SIMULATOR_OSD_WEBSOCKET_ENDPOINT: ws://host.docker.internal:18083/osd
+      SIMULATOR_OSD_WEBSOCKET_ENDPOINT: ws://host.docker.internal:18083/ws/osd

@@ -57,10 +57,11 @@ public class DeviceTelemetryEntity {
     private String maintainStatus;
     private String trackId;
     private LocalDateTime publishTime;
+    @TableField(exist = false)
     private String rawJson;
     private LocalDateTime createTime;
     private LocalDateTime updateTime;
-    private Long createdBy;
-    private Long updatedBy;
+    private String createdBy;
+    private String updatedBy;
     private Integer isDeleted;
 }

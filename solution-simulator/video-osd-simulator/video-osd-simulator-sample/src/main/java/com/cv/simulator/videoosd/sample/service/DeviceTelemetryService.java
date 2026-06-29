@@ -7,7 +7,7 @@ import com.cv.boot.mybatisplus.pojo.vo.PageInfoVO;
 import com.cv.simulator.videoosd.core.osd.DeviceTelemetryRecord;
 import com.cv.simulator.videoosd.core.osd.OsdExcelImporter;
 import com.cv.simulator.videoosd.core.osd.OsdPayloadSupport;
-import com.cv.simulator.videoosd.core.websocket.WebSocketOsdSender;
+import com.cv.simulator.videoosd.sample.config.OsdBroadcastWebSocketHandler;
 import com.cv.simulator.videoosd.sample.config.SimulatorProperties;
 import com.cv.simulator.videoosd.sample.mapper.DeviceTelemetryMapper;
 import com.cv.simulator.videoosd.sample.pojo.entity.DeviceTelemetryEntity;
@@ -27,20 +27,20 @@ public class DeviceTelemetryService extends ServiceImpl<DeviceTelemetryMapper, D
 
     private final OsdExcelImporter excelImporter;
     private final OsdPayloadSupport payloadSupport;
-    private final WebSocketOsdSender osdSender;
+    private final OsdBroadcastWebSocketHandler osdBroadcastWebSocketHandler;
     private final SimulatorProperties properties;
     private final TaskRunLogService runLogService;
     private final PublishTimeReplayExecutor replayExecutor;
 
     public DeviceTelemetryService(OsdExcelImporter excelImporter,
                                   OsdPayloadSupport payloadSupport,
-                                  WebSocketOsdSender osdSender,
+                                  OsdBroadcastWebSocketHandler osdBroadcastWebSocketHandler,
                                   SimulatorProperties properties,
                                   TaskRunLogService runLogService,
                                   PublishTimeReplayExecutor replayExecutor) {
         this.excelImporter = excelImporter;
         this.payloadSupport = payloadSupport;
-        this.osdSender = osdSender;
+        this.osdBroadcastWebSocketHandler = osdBroadcastWebSocketHandler;
         this.properties = properties;
         this.runLogService = runLogService;
         this.replayExecutor = replayExecutor;
@@ -115,19 +115,9 @@ public class DeviceTelemetryService extends ServiceImpl<DeviceTelemetryMapper, D
     @Async
     public void replayByTask(StreamTaskEntity task) {
         Long taskId = task.getId();
-        LocalDateTime publishTimeStart = resolvePublishTimeStart(task);
-        LocalDateTime publishTimeEnd = resolvePublishTimeEnd(task);
-        List<DeviceTelemetryEntity> rows = lambdaQuery()
-                .eq(DeviceTelemetryEntity::getTaskId, taskId)
-                .eq(DeviceTelemetryEntity::getIsDeleted, 0)
-                .isNotNull(DeviceTelemetryEntity::getPublishTime)
-                .ge(publishTimeStart != null, DeviceTelemetryEntity::getPublishTime, publishTimeStart)
-                .le(publishTimeEnd != null, DeviceTelemetryEntity::getPublishTime, publishTimeEnd)
-                .orderByAsc(DeviceTelemetryEntity::getPublishTime)
-                .orderByAsc(DeviceTelemetryEntity::getId)
-                .list();
+        List<DeviceTelemetryEntity> rows = loadReplayRows(task);
         int sent = replayExecutor.replay(rows, row -> {
-            osdSender.send(properties.getOsd().getWebsocketEndpoint(), payloadSupport.toPayloadJson(toRecord(row)));
+            osdBroadcastWebSocketHandler.broadcast(payloadSupport.toPayloadJson(toRecord(row)));
         }, this::sleep);
         if (sent == 0) {
             runLogService.record(taskId, "OSD_REPLAY", "STOPPED", "no osd data found in publish_time window", null, 0);
@@ -140,6 +130,22 @@ public class DeviceTelemetryService extends ServiceImpl<DeviceTelemetryMapper, D
         StreamTaskEntity task = new StreamTaskEntity();
         task.setId(taskId);
         replayByTask(task);
+    }
+
+    List<DeviceTelemetryEntity> loadReplayRows(StreamTaskEntity task) {
+        Long taskId = task.getId();
+        LocalDateTime publishTimeStart = resolvePublishTimeStart(task);
+        LocalDateTime publishTimeEnd = resolvePublishTimeEnd(task);
+        boolean requireTaskIdMatch = properties.getOsd().isRequireTaskIdMatch();
+        return lambdaQuery()
+                .eq(requireTaskIdMatch && taskId != null, DeviceTelemetryEntity::getTaskId, taskId)
+                .eq(DeviceTelemetryEntity::getIsDeleted, 0)
+                .isNotNull(DeviceTelemetryEntity::getPublishTime)
+                .ge(publishTimeStart != null, DeviceTelemetryEntity::getPublishTime, publishTimeStart)
+                .le(publishTimeEnd != null, DeviceTelemetryEntity::getPublishTime, publishTimeEnd)
+                .orderByAsc(DeviceTelemetryEntity::getPublishTime)
+                .orderByAsc(DeviceTelemetryEntity::getId)
+                .list();
     }
 
     private DeviceTelemetryEntity fromRecord(DeviceTelemetryRecord record) {
