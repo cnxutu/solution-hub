@@ -28,7 +28,9 @@ simulator:
     path: "C:/Users/44527/AppData/Local/Microsoft/WinGet/Packages/Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe/ffmpeg-8.1.1-full_build/bin/ffmpeg.exe"
     input-patterns: "*.mp4,*.flv,*.mov,*.mkv"
   osd:
+    source-type: STATIC_JSON
     websocket-endpoint: ws://127.0.0.1:18083/ws/osd
+    static-json-location: classpath:/static/long_text_1813A2F3-3BCF-47A1-BE25-B6A7C4F3E1D8.json
     fixed-interval-millis: 1000
     require-task-id-match: false
     publish-time-start:

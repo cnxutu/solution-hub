@@ -21,7 +21,9 @@ public class SimulatorProperties {
 
     @Data
     public static class Osd {
+        private OsdSourceType sourceType = OsdSourceType.STATIC_JSON;
         private String websocketEndpoint = "ws://127.0.0.1:18083/ws/osd";
+        private String staticJsonLocation = "classpath:/static/long_text_1813A2F3-3BCF-47A1-BE25-B6A7C4F3E1D8.json";
         private long fixedIntervalMillis = 1000L;
         private boolean requireTaskIdMatch = false;
         private String publishTimeStart;

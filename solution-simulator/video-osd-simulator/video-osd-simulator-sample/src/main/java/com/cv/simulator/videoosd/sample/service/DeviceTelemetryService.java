@@ -8,12 +8,14 @@ import com.cv.simulator.videoosd.core.osd.DeviceTelemetryRecord;
 import com.cv.simulator.videoosd.core.osd.OsdExcelImporter;
 import com.cv.simulator.videoosd.core.osd.OsdPayloadSupport;
 import com.cv.simulator.videoosd.sample.config.OsdBroadcastWebSocketHandler;
+import com.cv.simulator.videoosd.sample.config.OsdSourceType;
 import com.cv.simulator.videoosd.sample.config.SimulatorProperties;
 import com.cv.simulator.videoosd.sample.mapper.DeviceTelemetryMapper;
 import com.cv.simulator.videoosd.sample.pojo.entity.DeviceTelemetryEntity;
 import com.cv.simulator.videoosd.sample.pojo.entity.StreamTaskEntity;
 import com.cv.simulator.videoosd.sample.pojo.query.DeleteIdsQuery;
 import com.cv.simulator.videoosd.sample.pojo.query.TelemetryPageQuery;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -23,6 +25,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Service
+@Slf4j
 public class DeviceTelemetryService extends ServiceImpl<DeviceTelemetryMapper, DeviceTelemetryEntity> {
 
     private final OsdExcelImporter excelImporter;
@@ -31,19 +34,25 @@ public class DeviceTelemetryService extends ServiceImpl<DeviceTelemetryMapper, D
     private final SimulatorProperties properties;
     private final TaskRunLogService runLogService;
     private final PublishTimeReplayExecutor replayExecutor;
+    private final StaticJsonOsdPayloadLoader staticJsonOsdPayloadLoader;
+    private final FixedIntervalReplayExecutor fixedIntervalReplayExecutor;
 
     public DeviceTelemetryService(OsdExcelImporter excelImporter,
                                   OsdPayloadSupport payloadSupport,
                                   OsdBroadcastWebSocketHandler osdBroadcastWebSocketHandler,
                                   SimulatorProperties properties,
                                   TaskRunLogService runLogService,
-                                  PublishTimeReplayExecutor replayExecutor) {
+                                  PublishTimeReplayExecutor replayExecutor,
+                                  StaticJsonOsdPayloadLoader staticJsonOsdPayloadLoader,
+                                  FixedIntervalReplayExecutor fixedIntervalReplayExecutor) {
         this.excelImporter = excelImporter;
         this.payloadSupport = payloadSupport;
         this.osdBroadcastWebSocketHandler = osdBroadcastWebSocketHandler;
         this.properties = properties;
         this.runLogService = runLogService;
         this.replayExecutor = replayExecutor;
+        this.staticJsonOsdPayloadLoader = staticJsonOsdPayloadLoader;
+        this.fixedIntervalReplayExecutor = fixedIntervalReplayExecutor;
     }
 
     public PageInfoVO<DeviceTelemetryEntity> pageList(TelemetryPageQuery query) {
@@ -114,6 +123,10 @@ public class DeviceTelemetryService extends ServiceImpl<DeviceTelemetryMapper, D
 
     @Async
     public void replayByTask(StreamTaskEntity task) {
+        if (properties.getOsd().getSourceType() == OsdSourceType.STATIC_JSON) {
+            replayStaticJson(task);
+            return;
+        }
         Long taskId = task.getId();
         List<DeviceTelemetryEntity> rows = loadReplayRows(task);
         int sent = replayExecutor.replay(rows, row -> {
@@ -124,6 +137,23 @@ public class DeviceTelemetryService extends ServiceImpl<DeviceTelemetryMapper, D
             return;
         }
         runLogService.record(taskId, "OSD_REPLAY", "STOPPED", "osd replay completed", null, sent);
+    }
+
+    private void replayStaticJson(StreamTaskEntity task) {
+        Long taskId = task.getId();
+        String location = properties.getOsd().getStaticJsonLocation();
+        List<String> payloads = staticJsonOsdPayloadLoader.load(location);
+        log.info("osd replay using static json: taskId={}, location={}, intervalMillis={}",
+                taskId, location, properties.getOsd().getFixedIntervalMillis());
+        int sent = fixedIntervalReplayExecutor.replay(payloads,
+                osdBroadcastWebSocketHandler::broadcast,
+                this::sleep,
+                properties.getOsd().getFixedIntervalMillis());
+        if (sent == 0) {
+            runLogService.record(taskId, "OSD_REPLAY", "STOPPED", "no osd data found in static json file", null, 0);
+            return;
+        }
+        runLogService.record(taskId, "OSD_REPLAY", "STOPPED", "static json osd replay completed", null, sent);
     }
 
     public void replayByTask(Long taskId) {

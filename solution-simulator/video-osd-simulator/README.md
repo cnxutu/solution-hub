@@ -3,7 +3,7 @@
 `video-osd-simulator` 用于联调 ZLMediaKit、视频推流与 OSD 数据回放。当前优先推荐的验证链路是：
 
 1. Spring Boot 调起 `ffmpeg`，把本地视频文件推到 ZLMediaKit 的 `RTMP` 地址。
-2. 同时从 MySQL `xm_test.device_telemetry_sub` 按 `publish_time` 时间轴回放一轮 OSD 数据到 WebSocket。
+2. 同时从 `video-osd-simulator-sample/src/main/resources/static` 下的 JSON 文件读取 OSD 数据，按固定间隔回放到 WebSocket。
 3. 前端页面通过 ZLMediaKit 的 `WebRTC play` 方式拉流，并叠加接收到的 OSD。
 
 这样就不依赖本机额外安装 WebRTC 推流工具，也能先把“视频 + OSD + 前端展示”整条链路跑通。
@@ -22,11 +22,11 @@
 
 - 任务表 `sim_stream_task` 的 CRUD 与启动、停止、状态查询。
 - OSD 表 `device_telemetry_sub` 的 CRUD、JSON 上传、Excel 导入。
-- `application.yml` 直接提供 MySQL 运行配置。
+- `application.yml` 直接提供 MySQL 运行配置，以及 OSD 数据源切换配置。
 
 ## 当前推荐配置
 
-当前 sample 已经收敛为单一 MySQL 方案，不再保留 H2/profile 分流逻辑。
+当前 sample 已经收敛为单一 MySQL 方案保存任务与运行日志，不再保留 H2/profile 分流逻辑。
 
 当前本地联调环境按你现在的真实端口写法如下：
 
@@ -42,7 +42,10 @@ simulator:
   ffmpeg:
     path: ffmpeg
   osd:
+    source-type: STATIC_JSON
     websocket-endpoint: ws://127.0.0.1:18083/ws/osd
+    static-json-location: classpath:/static/long_text_1813A2F3-3BCF-47A1-BE25-B6A7C4F3E1D8.json
+    fixed-interval-millis: 1000
     require-task-id-match: false
     publish-time-start: 2026-06-29T10:00:00
     publish-time-end: 2026-06-29T10:30:00
@@ -59,11 +62,14 @@ simulator:
 
 说明：
 
+- `source-type=STATIC_JSON` 时，OSD 从 classpath JSON 文件读取，第一条立即发送，后续按 `fixed-interval-millis` 固定间隔发送。
+- `static-json-location` 当前默认指向 sample 自带的 `long_text_1813A2F3-3BCF-47A1-BE25-B6A7C4F3E1D8.json`。
+- 如果后续要切回数据库时间轴模式，把 `source-type` 改成 `MYSQL` 即可。
 - `publish-time-start` 和 `publish-time-end` 用于限定 OSD 回放时间窗。
 - `require-task-id-match=false` 时，OSD 按时间窗查询，不强依赖 `device_telemetry_sub.task_id`。
 - `require-task-id-match=true` 时，OSD 会额外要求 `device_telemetry_sub.task_id = 当前任务id`。
 - 当前 `RTMP` 推流默认会转码为更适合浏览器 WebRTC 拉流验证的 `H.264 + AAC`，不再直接 `copy` 原视频编码。
-- OSD 回放不是固定毫秒轮询，而是以时间窗内最小 `publish_time` 为起点，后续每条消息都按它和上一条记录的时间差发送。
+- `MYSQL` 模式下，OSD 仍然会以时间窗内最小 `publish_time` 为起点，后续每条消息都按它和上一条记录的时间差发送。
 - `publish_time` 为空的记录不会参与本轮回放。
 - 当前版本默认新建任务协议为 `RTMP`，这样更适合先完成整体流程验证。
 
@@ -80,17 +86,20 @@ mvn -pl solution-simulator/video-osd-simulator/video-osd-simulator-sample -am sp
 - URL：`jdbc:mysql://localhost:3306/xm_test?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=Asia/Shanghai`
 - 用户名：`root`
 - 密码：`Win@2026!`
-- 表：`device_telemetry_sub`
+- 表：`sim_stream_task`、`sim_task_run_log`，如果切回 `MYSQL` OSD 模式还会读取 `device_telemetry_sub`
 
 ## 需要准备哪些表
 
-如果你用 MySQL 跑完整链路，至少需要这些表：
+如果你现在按默认 `STATIC_JSON` 模式跑链路，至少需要这些表：
 
-- `device_telemetry_sub`
 - `sim_stream_task`
 - `sim_task_run_log`
 
-`device_telemetry_sub` 是 OSD 数据源表，应用会按任务里的 `osd_publish_time_start`、`osd_publish_time_end` 过滤，并按 `publish_time asc, id asc` 顺序发送。
+如果后续切回 `MYSQL` 模式，再额外准备：
+
+- `device_telemetry_sub`
+
+`device_telemetry_sub` 是 `MYSQL` 模式下的 OSD 数据源表，应用会按任务里的 `osd_publish_time_start`、`osd_publish_time_end` 过滤，并按 `publish_time asc, id asc` 顺序发送。
 
 默认情况下不要求 `task_id` 必须等于任务 id；如果你希望一条任务只回放自己绑定的数据，可以把 `simulator.osd.require-task-id-match` 改成 `true`。
 
@@ -143,7 +152,7 @@ curl http://localhost:18083/simulator/stream-task/status/1
 
 ### 1. 后端侧
 
-1. 确认 MySQL 容器 `kh-mysql` 正常运行，且 `xm_test.device_telemetry_sub` 中存在带 `publish_time` 的测试数据。
+1. 确认 MySQL 容器 `kh-mysql` 正常运行，且 `xm_test.sim_stream_task`、`xm_test.sim_task_run_log` 可正常写入。
 2. 确认 ZLMediaKit 容器 `zlm` 正常运行，关键端口如下：
    - HTTP：`8086`
    - RTMP：`7935`
@@ -220,8 +229,39 @@ ws://127.0.0.1:18083/ws/osd
 观察重点：
 
 - 第一条 OSD 会立即发送。
-- 第二条开始，发送间隔应接近数据库里相邻两条记录的 `publish_time` 差值。
-- 如果多条记录 `publish_time` 相同，它们会按 `id` 顺序连续发出。
+- 当前默认 `STATIC_JSON` 模式下，第二条开始会按 `fixed-interval-millis` 固定间隔发送，默认是 `1000ms`。
+- 如果切回 `MYSQL` 模式，第二条开始则会按数据库里相邻两条记录的 `publish_time` 差值发送。
+
+## OSD 数据源切换
+
+默认配置：
+
+```yaml
+simulator:
+  osd:
+    source-type: STATIC_JSON
+    static-json-location: classpath:/static/long_text_1813A2F3-3BCF-47A1-BE25-B6A7C4F3E1D8.json
+    fixed-interval-millis: 1000
+```
+
+如果你想切回 MySQL：
+
+```yaml
+simulator:
+  osd:
+    source-type: MYSQL
+    publish-time-start: 2026-06-29T10:00:00
+    publish-time-end: 2026-06-29T10:30:00
+    require-task-id-match: false
+```
+
+当前静态 JSON 文件直接放在：
+
+```text
+video-osd-simulator-sample/src/main/resources/static/long_text_1813A2F3-3BCF-47A1-BE25-B6A7C4F3E1D8.json
+```
+
+前端如果只是要模拟 OSD 叠加，当前推荐就先用这条 `STATIC_JSON` 路线。
 
 ## 前端接入建议
 

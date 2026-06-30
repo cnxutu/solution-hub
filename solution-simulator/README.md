@@ -20,5 +20,5 @@ solution-simulator
 当前推荐的联调链路是：
 
 1. `video-osd-simulator-sample` 通过 `ffmpeg` 把本地视频文件推到 ZLMediaKit 的 `RTMP` 地址。
-2. 同时按 `device_telemetry_sub.publish_time` 的时间差，把 OSD 数据回放到 WebSocket。
+2. 同时把 OSD 数据回放到 WebSocket，当前默认数据源是 `resources/static` 下的 JSON 文件，按固定 `1s` 间隔发送；也可以切回 MySQL 时间轴回放。
 3. 前端页面通过 ZLMediaKit 的 `WebRTC play` 方式拉流展示视频，并通过 WebSocket 叠加 OSD。
