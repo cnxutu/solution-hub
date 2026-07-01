@@ -3,6 +3,7 @@ package com.cv.simulator.videoosd.core.osd;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -52,5 +53,18 @@ class OsdPayloadSupportTest {
         String json = support.toPayloadJson(record);
 
         assertEquals("{\"device_sn\":\"dock-009\",\"frame_center\":{\"lat\":30.1856666496194,\"lon\":120.1979761985018},\"corners\":[{\"lat\":30.1857,\"lon\":120.198},{\"lat\":30.1857,\"lon\":120.1981},{\"lat\":30.1856,\"lon\":120.1981},{\"lat\":30.1856,\"lon\":120.198}]}", json);
+    }
+
+    @Test
+    void serializesDateTimeFieldsAsIsoStrings() {
+        DeviceTelemetryRecord record = new DeviceTelemetryRecord();
+        record.setDeviceSn("dock-010");
+        record.setPublishTime(LocalDateTime.of(2026, 7, 1, 10, 13, 25));
+        record.setCreateTime(LocalDateTime.of(2026, 7, 1, 10, 13, 26));
+        record.setUpdateTime(LocalDateTime.of(2026, 7, 1, 10, 13, 27));
+
+        String json = support.toPayloadJson(record);
+
+        assertEquals("{\"device_sn\":\"dock-010\",\"publish_time\":\"2026-07-01T10:13:25\",\"create_time\":\"2026-07-01T10:13:26\",\"update_time\":\"2026-07-01T10:13:27\"}", json);
     }
 }

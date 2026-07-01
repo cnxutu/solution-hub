@@ -6,51 +6,106 @@ import java.util.List;
 
 public class DeviceTelemetryRecord {
 
+    /** 主键。 */
     private Long id;
+    /** 任务id。 */
     private Long taskId;
+    /** 设备序列号（机场/无人机/遥控器）。 */
     private String deviceSn;
+    /** 航向角。 */
     private Float attitudeHead;
+    /** 俯仰角。 */
     private Double attitudePitch;
+    /** 横滚角。 */
     private Double attitudeRoll;
+    /** 相对高度。 */
     private Float elevation;
+    /** DroneBattery 对象。 */
     private String battery;
+    /** 固件版本。 */
     private String firmwareVersion;
+    /** GearEnum。 */
     private String gear;
+    /** 海拔。 */
     private Float height;
+    /** 返航点距离。 */
     private Float homeDistance;
+    /** 水平速度。 */
     private Float horizontalSpeed;
+    /** 纬度。 */
     private BigDecimal latitude;
+    /** 经度。 */
     private BigDecimal longitude;
+    /** DroneModeCodeEnum。 */
     private Integer modeCode;
+    /** 动作类型。 */
     private Integer actionType;
+    /** 累计飞行距离。 */
     private Double totalFlightDistance;
+    /** 累计飞行时间(分钟/秒视协议)。 */
     private Float totalFlightTime;
+    /** 垂直速度。 */
     private Float verticalSpeed;
+    /** WindDirectionEnum。 */
     private String windDirection;
+    /** 风速。 */
     private Float windSpeed;
+    /** DronePositionState 对象。 */
     private String positionState;
+    /** List<DockDronePayload>。 */
     private String payloads;
+    /** Storage 对象。 */
     private String storage;
+    /** SwitchActionEnum。 */
     private String nightLightsState;
+    /** 高度限高。 */
     private Integer heightLimit;
+    /** DockDistanceLimitStatus 对象。 */
     private String distanceLimitStatus;
+    /** ObstacleAvoidance 对象。 */
     private String obstacleAvoidance;
+    /** 激活时间(ms)。 */
     private Long activationTime;
+    /** List<OsdCamera>。 */
     private String cameras;
+    /** RcLostActionEnum。 */
     private String rcLostAction;
+    /** RTH 高度。 */
     private Integer rthAltitude;
+    /** 总飞行架次。 */
     private Integer totalFlightSorties;
+    /** ExitWaylineWhenRcLostEnum(废弃标记按需使用)。 */
     private String exitWaylineWhenRcLost;
+    /** 国家/区域。 */
     private String country;
+    /** 远程ID状态。 */
     private Boolean ridState;
+    /** 临近区限飞。 */
     private Boolean nearAreaLimit;
+    /** 临近高度限飞。 */
     private Boolean nearHeightLimit;
+    /** OsdDroneMaintainStatus 对象。 */
     private String maintainStatus;
+    /** 轨迹ID。 */
     private String trackId;
+    /** OSD 发布时间。 */
     private LocalDateTime publishTime;
+    /** 原始 JSON 对象，仅用于兼容额外动态字段。 */
     private String rawJson;
+    /** 计算后的画面中心点。 */
     private GeoPoint frameCenter;
+    /** 计算后的画面四角点。 */
     private List<GeoPoint> corners;
+    /** 创建时间。 */
+    private LocalDateTime createTime;
+    /** 创建人。 */
+    private String createdBy;
+    /** 更新时间。 */
+    private LocalDateTime updateTime;
+    /** 更新人。 */
+    private String updatedBy;
+    /** 软删除标记。 */
+    private Integer isDeleted;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -142,4 +197,14 @@ public class DeviceTelemetryRecord {
     public void setFrameCenter(GeoPoint frameCenter) { this.frameCenter = frameCenter; }
     public List<GeoPoint> getCorners() { return corners; }
     public void setCorners(List<GeoPoint> corners) { this.corners = corners; }
+    public LocalDateTime getCreateTime() { return createTime; }
+    public void setCreateTime(LocalDateTime createTime) { this.createTime = createTime; }
+    public String getCreatedBy() { return createdBy; }
+    public void setCreatedBy(String createdBy) { this.createdBy = createdBy; }
+    public LocalDateTime getUpdateTime() { return updateTime; }
+    public void setUpdateTime(LocalDateTime updateTime) { this.updateTime = updateTime; }
+    public String getUpdatedBy() { return updatedBy; }
+    public void setUpdatedBy(String updatedBy) { this.updatedBy = updatedBy; }
+    public Integer getIsDeleted() { return isDeleted; }
+    public void setIsDeleted(Integer isDeleted) { this.isDeleted = isDeleted; }
 }
