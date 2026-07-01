@@ -6,6 +6,7 @@ import com.cv.boot.crud.mp.support.MpCrudSupport;
 import com.cv.boot.mybatisplus.pojo.vo.PageInfoVO;
 import com.cv.simulator.videoosd.core.osd.DeviceTelemetryRecord;
 import com.cv.simulator.videoosd.core.osd.OsdExcelImporter;
+import com.cv.simulator.videoosd.core.osd.OsdFrameGeometryCalculator;
 import com.cv.simulator.videoosd.core.osd.OsdPayloadSupport;
 import com.cv.simulator.videoosd.sample.config.OsdBroadcastWebSocketHandler;
 import com.cv.simulator.videoosd.sample.config.OsdSourceType;
@@ -30,6 +31,7 @@ public class DeviceTelemetryService extends ServiceImpl<DeviceTelemetryMapper, D
 
     private final OsdExcelImporter excelImporter;
     private final OsdPayloadSupport payloadSupport;
+    private final OsdFrameGeometryCalculator frameGeometryCalculator;
     private final OsdBroadcastWebSocketHandler osdBroadcastWebSocketHandler;
     private final SimulatorProperties properties;
     private final TaskRunLogService runLogService;
@@ -39,6 +41,7 @@ public class DeviceTelemetryService extends ServiceImpl<DeviceTelemetryMapper, D
 
     public DeviceTelemetryService(OsdExcelImporter excelImporter,
                                   OsdPayloadSupport payloadSupport,
+                                  OsdFrameGeometryCalculator frameGeometryCalculator,
                                   OsdBroadcastWebSocketHandler osdBroadcastWebSocketHandler,
                                   SimulatorProperties properties,
                                   TaskRunLogService runLogService,
@@ -47,6 +50,7 @@ public class DeviceTelemetryService extends ServiceImpl<DeviceTelemetryMapper, D
                                   FixedIntervalReplayExecutor fixedIntervalReplayExecutor) {
         this.excelImporter = excelImporter;
         this.payloadSupport = payloadSupport;
+        this.frameGeometryCalculator = frameGeometryCalculator;
         this.osdBroadcastWebSocketHandler = osdBroadcastWebSocketHandler;
         this.properties = properties;
         this.runLogService = runLogService;
@@ -128,14 +132,32 @@ public class DeviceTelemetryService extends ServiceImpl<DeviceTelemetryMapper, D
             return;
         }
         Long taskId = task.getId();
+        LocalDateTime publishTimeStart = resolvePublishTimeStart(task);
+        LocalDateTime publishTimeEnd = resolvePublishTimeEnd(task);
+        boolean requireTaskIdMatch = properties.getOsd().isRequireTaskIdMatch();
+        log.info("{} taskId={}, publishTimeStart={}, publishTimeEnd={}, requireTaskIdMatch={}",
+                OsdReplayLogSupport.marker("MYSQL_REPLAY_START"),
+                taskId, publishTimeStart, publishTimeEnd, requireTaskIdMatch);
         List<DeviceTelemetryEntity> rows = loadReplayRows(task);
+        log.info("{} taskId={}, {}", OsdReplayLogSupport.marker("MYSQL_QUERY_RESULT"), taskId, OsdReplayLogSupport.summarizeRows(rows));
         int sent = replayExecutor.replay(rows, row -> {
-            osdBroadcastWebSocketHandler.broadcast(payloadSupport.toPayloadJson(toRecord(row)));
+            log.info("{} taskId={}, rowId={}, publishTime={}, deviceSn={}",
+                    OsdReplayLogSupport.marker("MYSQL_ROW_PICKED"),
+                    taskId, row.getId(), row.getPublishTime(), row.getDeviceSn());
+            String payload = payloadSupport.toPayloadJson(toRecord(row));
+            log.info("{} taskId={}, rowId={}, payloadPreview={}",
+                    OsdReplayLogSupport.marker("MYSQL_PAYLOAD_BUILT"),
+                    taskId, row.getId(), OsdReplayLogSupport.payloadPreview(payload, 200));
+            log.info("{} taskId={}, rowId={}, activeSessions={}",
+                    OsdReplayLogSupport.marker("MYSQL_BROADCASTING"),
+                    taskId, row.getId(), osdBroadcastWebSocketHandler.activeSessionCount());
+            osdBroadcastWebSocketHandler.broadcast(payload);
         }, this::sleep);
         if (sent == 0) {
             runLogService.record(taskId, "OSD_REPLAY", "STOPPED", "no osd data found in publish_time window", null, 0);
             return;
         }
+        log.info("{} taskId={}, sentCount={}", OsdReplayLogSupport.marker("MYSQL_REPLAY_COMPLETED"), taskId, sent);
         runLogService.record(taskId, "OSD_REPLAY", "STOPPED", "osd replay completed", null, sent);
     }
 
@@ -143,10 +165,18 @@ public class DeviceTelemetryService extends ServiceImpl<DeviceTelemetryMapper, D
         Long taskId = task.getId();
         String location = properties.getOsd().getStaticJsonLocation();
         List<String> payloads = staticJsonOsdPayloadLoader.load(location);
-        log.info("osd replay using static json: taskId={}, location={}, intervalMillis={}",
+        log.info("{} taskId={}, location={}, intervalMillis={}",
+                OsdReplayLogSupport.marker("STATIC_REPLAY_START"),
                 taskId, location, properties.getOsd().getFixedIntervalMillis());
         int sent = fixedIntervalReplayExecutor.replay(payloads,
-                osdBroadcastWebSocketHandler::broadcast,
+                payload -> {
+                    log.info("{} taskId={}, activeSessions={}, payloadPreview={}",
+                            OsdReplayLogSupport.marker("STATIC_BROADCASTING"),
+                            taskId,
+                            osdBroadcastWebSocketHandler.activeSessionCount(),
+                            OsdReplayLogSupport.payloadPreview(payload, 200));
+                    osdBroadcastWebSocketHandler.broadcast(payload);
+                },
                 this::sleep,
                 properties.getOsd().getFixedIntervalMillis());
         if (sent == 0) {
@@ -167,12 +197,11 @@ public class DeviceTelemetryService extends ServiceImpl<DeviceTelemetryMapper, D
         LocalDateTime publishTimeStart = resolvePublishTimeStart(task);
         LocalDateTime publishTimeEnd = resolvePublishTimeEnd(task);
         boolean requireTaskIdMatch = properties.getOsd().isRequireTaskIdMatch();
+        log.info("{} taskId={}, publishTimeStart={}, publishTimeEnd={}, requireTaskIdMatch={}, strategy=lambdaQuery-all-records",
+                OsdReplayLogSupport.marker("MYSQL_QUERY"),
+                taskId, publishTimeStart, publishTimeEnd, requireTaskIdMatch);
         return lambdaQuery()
-                .eq(requireTaskIdMatch && taskId != null, DeviceTelemetryEntity::getTaskId, taskId)
                 .eq(DeviceTelemetryEntity::getIsDeleted, 0)
-                .isNotNull(DeviceTelemetryEntity::getPublishTime)
-                .ge(publishTimeStart != null, DeviceTelemetryEntity::getPublishTime, publishTimeStart)
-                .le(publishTimeEnd != null, DeviceTelemetryEntity::getPublishTime, publishTimeEnd)
                 .orderByAsc(DeviceTelemetryEntity::getPublishTime)
                 .orderByAsc(DeviceTelemetryEntity::getId)
                 .list();
@@ -194,11 +223,18 @@ public class DeviceTelemetryService extends ServiceImpl<DeviceTelemetryMapper, D
         record.setId(entity.getId());
         record.setTaskId(entity.getTaskId());
         record.setDeviceSn(entity.getDeviceSn());
+        record.setAttitudeHead(entity.getAttitudeHead());
+        record.setAttitudePitch(entity.getAttitudePitch());
+        record.setAttitudeRoll(entity.getAttitudeRoll());
+        record.setHeight(entity.getHeight());
         record.setLatitude(entity.getLatitude());
         record.setLongitude(entity.getLongitude());
         record.setModeCode(entity.getModeCode());
         record.setTrackId(entity.getTrackId());
         record.setRawJson(entity.getRawJson());
+        frameGeometryCalculator.populateFrameGeometry(record,
+                properties.getOsd().getFrameHfovDeg(),
+                properties.getOsd().getFrameVfovDeg());
         return record;
     }
 

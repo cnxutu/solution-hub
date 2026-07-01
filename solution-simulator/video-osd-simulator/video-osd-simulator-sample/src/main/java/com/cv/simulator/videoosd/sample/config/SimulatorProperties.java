@@ -28,6 +28,8 @@ public class SimulatorProperties {
         private boolean requireTaskIdMatch = false;
         private String publishTimeStart;
         private String publishTimeEnd;
+        private double frameHfovDeg = 60.0D;
+        private double frameVfovDeg = 40.0D;
     }
 
     @Data

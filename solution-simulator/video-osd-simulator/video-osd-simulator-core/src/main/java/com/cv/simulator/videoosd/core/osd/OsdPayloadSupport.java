@@ -31,6 +31,8 @@ public class OsdPayloadSupport {
         put(root, "longitude", record.getLongitude());
         put(root, "mode_code", record.getModeCode());
         put(root, "track_id", record.getTrackId());
+        put(root, "frame_center", record.getFrameCenter());
+        put(root, "corners", record.getCorners());
         try {
             return objectMapper.writeValueAsString(root);
         } catch (JsonProcessingException e) {

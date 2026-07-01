@@ -3,6 +3,7 @@ package com.cv.simulator.videoosd.core.osd;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
@@ -34,5 +35,22 @@ class OsdPayloadSupportTest {
         IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> support.toPayloadJson(record));
 
         assertEquals("raw_json must be a valid JSON object", exception.getMessage());
+    }
+
+    @Test
+    void includesFrameCenterAndCornersWhenPresent() {
+        DeviceTelemetryRecord record = new DeviceTelemetryRecord();
+        record.setDeviceSn("dock-009");
+        record.setFrameCenter(new GeoPoint(new BigDecimal("30.1856666496194"), new BigDecimal("120.1979761985018")));
+        record.setCorners(List.of(
+                new GeoPoint(new BigDecimal("30.1857000000000"), new BigDecimal("120.1980000000000")),
+                new GeoPoint(new BigDecimal("30.1857000000000"), new BigDecimal("120.1981000000000")),
+                new GeoPoint(new BigDecimal("30.1856000000000"), new BigDecimal("120.1981000000000")),
+                new GeoPoint(new BigDecimal("30.1856000000000"), new BigDecimal("120.1980000000000"))
+        ));
+
+        String json = support.toPayloadJson(record);
+
+        assertEquals("{\"device_sn\":\"dock-009\",\"frame_center\":{\"lat\":30.1856666496194,\"lon\":120.1979761985018},\"corners\":[{\"lat\":30.1857,\"lon\":120.198},{\"lat\":30.1857,\"lon\":120.1981},{\"lat\":30.1856,\"lon\":120.1981},{\"lat\":30.1856,\"lon\":120.198}]}", json);
     }
 }

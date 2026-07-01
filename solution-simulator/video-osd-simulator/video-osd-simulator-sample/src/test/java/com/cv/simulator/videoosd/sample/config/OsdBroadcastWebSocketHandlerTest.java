@@ -49,6 +49,20 @@ class OsdBroadcastWebSocketHandlerTest {
         assertEquals(Collections.emptyList(), closedSession.sentPayloads);
     }
 
+    @Test
+    void reportsActiveSessionCount() throws Exception {
+        OsdBroadcastWebSocketHandler handler = new OsdBroadcastWebSocketHandler();
+        FakeWebSocketSession openSession = new FakeWebSocketSession("open");
+        FakeWebSocketSession closedSession = new FakeWebSocketSession("closed");
+
+        handler.afterConnectionEstablished(openSession);
+        handler.afterConnectionEstablished(closedSession);
+        closedSession.close();
+        handler.broadcast("{\"device_sn\":\"dock-003\"}");
+
+        assertEquals(1, handler.activeSessionCount());
+    }
+
     private static class FakeWebSocketSession implements WebSocketSession {
         private final String id;
         private final List<String> sentPayloads = new ArrayList<>();

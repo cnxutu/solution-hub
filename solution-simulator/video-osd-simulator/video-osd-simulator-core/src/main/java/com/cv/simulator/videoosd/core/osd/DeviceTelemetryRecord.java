@@ -2,6 +2,7 @@ package com.cv.simulator.videoosd.core.osd;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 public class DeviceTelemetryRecord {
 
@@ -48,6 +49,8 @@ public class DeviceTelemetryRecord {
     private String trackId;
     private LocalDateTime publishTime;
     private String rawJson;
+    private GeoPoint frameCenter;
+    private List<GeoPoint> corners;
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -135,4 +138,8 @@ public class DeviceTelemetryRecord {
     public void setPublishTime(LocalDateTime publishTime) { this.publishTime = publishTime; }
     public String getRawJson() { return rawJson; }
     public void setRawJson(String rawJson) { this.rawJson = rawJson; }
+    public GeoPoint getFrameCenter() { return frameCenter; }
+    public void setFrameCenter(GeoPoint frameCenter) { this.frameCenter = frameCenter; }
+    public List<GeoPoint> getCorners() { return corners; }
+    public void setCorners(List<GeoPoint> corners) { this.corners = corners; }
 }

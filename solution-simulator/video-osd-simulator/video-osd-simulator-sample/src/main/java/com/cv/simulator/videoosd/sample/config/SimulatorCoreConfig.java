@@ -5,6 +5,7 @@ import com.cv.simulator.videoosd.core.ffmpeg.FfmpegPathResolver;
 import com.cv.simulator.videoosd.core.ffmpeg.ProcessBuilderFfmpegLauncher;
 import com.cv.simulator.videoosd.core.media.VideoSourceScanner;
 import com.cv.simulator.videoosd.core.osd.OsdExcelImporter;
+import com.cv.simulator.videoosd.core.osd.OsdFrameGeometryCalculator;
 import com.cv.simulator.videoosd.core.osd.OsdPayloadSupport;
 import com.cv.simulator.videoosd.core.runtime.StreamTaskRuntime;
 import com.cv.simulator.videoosd.core.webrtc.ExternalWebRtcCommandBuilder;
@@ -45,6 +46,11 @@ public class SimulatorCoreConfig {
     @Bean
     public OsdExcelImporter osdExcelImporter() {
         return new OsdExcelImporter();
+    }
+
+    @Bean
+    public OsdFrameGeometryCalculator osdFrameGeometryCalculator() {
+        return new OsdFrameGeometryCalculator();
     }
 
     @Bean

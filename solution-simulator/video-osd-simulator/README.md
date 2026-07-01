@@ -71,6 +71,7 @@ simulator:
 - 当前 `RTMP` 推流默认会转码为更适合浏览器 WebRTC 拉流验证的 `H.264 + AAC`，不再直接 `copy` 原视频编码。
 - `MYSQL` 模式下，OSD 仍然会以时间窗内最小 `publish_time` 为起点，后续每条消息都按它和上一条记录的时间差发送。
 - `publish_time` 为空的记录不会参与本轮回放。
+- `MYSQL` 模式下如果启用了四角估算，会基于 `height + frame-hfov-deg + frame-vfov-deg + attitude_head` 计算 `frame_center/corners`。
 - 当前版本默认新建任务协议为 `RTMP`，这样更适合先完成整体流程验证。
 
 ## 启动方式
@@ -242,6 +243,8 @@ simulator:
     source-type: STATIC_JSON
     static-json-location: classpath:/static/long_text_1813A2F3-3BCF-47A1-BE25-B6A7C4F3E1D8.json
     fixed-interval-millis: 1000
+    frame-hfov-deg: 60.0
+    frame-vfov-deg: 40.0
 ```
 
 如果你想切回 MySQL：
@@ -253,6 +256,8 @@ simulator:
     publish-time-start: 2026-06-29T10:00:00
     publish-time-end: 2026-06-29T10:30:00
     require-task-id-match: false
+    frame-hfov-deg: 60.0
+    frame-vfov-deg: 40.0
 ```
 
 当前静态 JSON 文件直接放在：
@@ -262,6 +267,11 @@ video-osd-simulator-sample/src/main/resources/static/long_text_1813A2F3-3BCF-47A
 ```
 
 前端如果只是要模拟 OSD 叠加，当前推荐就先用这条 `STATIC_JSON` 路线。
+
+补充说明：
+
+- `frame-hfov-deg`、`frame-vfov-deg` 仅用于 `MYSQL` 模式下的首版四角估算。
+- 当前模型按 90 度俯视处理，因此 `frame_center` 直接取无人机当前经纬度。
 
 ## 前端接入建议
 
