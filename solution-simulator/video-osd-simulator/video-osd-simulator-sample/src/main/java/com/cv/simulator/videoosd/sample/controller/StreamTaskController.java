@@ -62,7 +62,9 @@ public class StreamTaskController {
 
     @PostMapping("/stop/{id}")
     public ApiResult<StreamTaskSnapshot> stop(@PathVariable Long id) {
-        return ApiResult.success(streamTaskService.stop(id));
+        StreamTaskSnapshot snapshot = streamTaskService.stop(id);
+        telemetryService.stopReplay(id);
+        return ApiResult.success(snapshot);
     }
 
     @GetMapping("/status/{id}")

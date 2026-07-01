@@ -4,9 +4,12 @@ import com.cv.simulator.videoosd.core.ffmpeg.FfmpegCommandBuilder;
 import com.cv.simulator.videoosd.core.ffmpeg.FfmpegPathResolver;
 import com.cv.simulator.videoosd.core.ffmpeg.ProcessBuilderFfmpegLauncher;
 import com.cv.simulator.videoosd.core.media.VideoSourceScanner;
+import com.cv.simulator.videoosd.core.mqtt.MqttOsdRecordMapper;
+import com.cv.simulator.videoosd.core.mqtt.MqttOsdSubscriber;
 import com.cv.simulator.videoosd.core.osd.OsdExcelImporter;
 import com.cv.simulator.videoosd.core.osd.OsdFrameGeometryCalculator;
 import com.cv.simulator.videoosd.core.osd.OsdPayloadSupport;
+import com.cv.simulator.videoosd.core.mqtt.PahoMqttOsdSubscriber;
 import com.cv.simulator.videoosd.core.runtime.StreamTaskRuntime;
 import com.cv.simulator.videoosd.core.webrtc.ExternalWebRtcCommandBuilder;
 import com.cv.simulator.videoosd.sample.service.PublishTimeReplayExecutor;
@@ -51,6 +54,16 @@ public class SimulatorCoreConfig {
     @Bean
     public OsdFrameGeometryCalculator osdFrameGeometryCalculator() {
         return new OsdFrameGeometryCalculator();
+    }
+
+    @Bean
+    public MqttOsdRecordMapper mqttOsdRecordMapper(OsdFrameGeometryCalculator osdFrameGeometryCalculator) {
+        return new MqttOsdRecordMapper(osdFrameGeometryCalculator);
+    }
+
+    @Bean
+    public MqttOsdSubscriber mqttOsdSubscriber(MqttOsdRecordMapper mqttOsdRecordMapper) {
+        return new PahoMqttOsdSubscriber(mqttOsdRecordMapper);
     }
 
     @Bean

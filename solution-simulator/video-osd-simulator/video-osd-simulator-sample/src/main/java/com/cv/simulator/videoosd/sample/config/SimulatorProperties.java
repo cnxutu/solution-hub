@@ -30,6 +30,19 @@ public class SimulatorProperties {
         private String publishTimeEnd;
         private double frameHfovDeg = 60.0D;
         private double frameVfovDeg = 40.0D;
+        private Mqtt mqtt = new Mqtt();
+    }
+
+    @Data
+    public static class Mqtt {
+        private String brokerUrl = "tcp://127.0.0.1:1883";
+        private String clientId = "video-osd-simulator";
+        private String topic = "thing/product/8UUXN4E00A05F5/drc/up";
+        private String username;
+        private String password;
+        private int qos = 0;
+        private boolean autoReconnect = true;
+        private boolean cleanSession = true;
     }
 
     @Data

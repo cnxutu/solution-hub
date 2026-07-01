@@ -4,6 +4,9 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.cv.boot.crud.mp.support.MpCrudSupport;
 import com.cv.boot.mybatisplus.pojo.vo.PageInfoVO;
+import com.cv.simulator.videoosd.core.mqtt.MqttOsdProperties;
+import com.cv.simulator.videoosd.core.mqtt.MqttOsdSubscriber;
+import com.cv.simulator.videoosd.core.mqtt.MqttOsdSubscriberSession;
 import com.cv.simulator.videoosd.core.osd.DeviceTelemetryRecord;
 import com.cv.simulator.videoosd.core.osd.OsdExcelImporter;
 import com.cv.simulator.videoosd.core.osd.OsdFrameGeometryCalculator;
@@ -24,6 +27,8 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
 
 @Service
 @Slf4j
@@ -38,6 +43,8 @@ public class DeviceTelemetryService extends ServiceImpl<DeviceTelemetryMapper, D
     private final PublishTimeReplayExecutor replayExecutor;
     private final StaticJsonOsdPayloadLoader staticJsonOsdPayloadLoader;
     private final FixedIntervalReplayExecutor fixedIntervalReplayExecutor;
+    private final MqttOsdSubscriber mqttOsdSubscriber;
+    private final ConcurrentMap<Long, MqttOsdSubscriberSession> mqttReplaySessions = new ConcurrentHashMap<>();
 
     public DeviceTelemetryService(OsdExcelImporter excelImporter,
                                   OsdPayloadSupport payloadSupport,
@@ -47,7 +54,8 @@ public class DeviceTelemetryService extends ServiceImpl<DeviceTelemetryMapper, D
                                   TaskRunLogService runLogService,
                                   PublishTimeReplayExecutor replayExecutor,
                                   StaticJsonOsdPayloadLoader staticJsonOsdPayloadLoader,
-                                  FixedIntervalReplayExecutor fixedIntervalReplayExecutor) {
+                                  FixedIntervalReplayExecutor fixedIntervalReplayExecutor,
+                                  MqttOsdSubscriber mqttOsdSubscriber) {
         this.excelImporter = excelImporter;
         this.payloadSupport = payloadSupport;
         this.frameGeometryCalculator = frameGeometryCalculator;
@@ -57,6 +65,7 @@ public class DeviceTelemetryService extends ServiceImpl<DeviceTelemetryMapper, D
         this.replayExecutor = replayExecutor;
         this.staticJsonOsdPayloadLoader = staticJsonOsdPayloadLoader;
         this.fixedIntervalReplayExecutor = fixedIntervalReplayExecutor;
+        this.mqttOsdSubscriber = mqttOsdSubscriber;
     }
 
     public PageInfoVO<DeviceTelemetryEntity> pageList(TelemetryPageQuery query) {
@@ -131,6 +140,10 @@ public class DeviceTelemetryService extends ServiceImpl<DeviceTelemetryMapper, D
             replayStaticJson(task);
             return;
         }
+        if (properties.getOsd().getSourceType() == OsdSourceType.MQTT) {
+            replayMqtt(task);
+            return;
+        }
         Long taskId = task.getId();
         LocalDateTime publishTimeStart = resolvePublishTimeStart(task);
         LocalDateTime publishTimeEnd = resolvePublishTimeEnd(task);
@@ -190,6 +203,16 @@ public class DeviceTelemetryService extends ServiceImpl<DeviceTelemetryMapper, D
         StreamTaskEntity task = new StreamTaskEntity();
         task.setId(taskId);
         replayByTask(task);
+    }
+
+    public void stopReplay(Long taskId) {
+        MqttOsdSubscriberSession session = mqttReplaySessions.remove(taskId);
+        if (session == null) {
+            return;
+        }
+        session.close();
+        log.info("{} taskId={}", OsdReplayLogSupport.marker("MQTT_SUBSCRIBE_STOP"), taskId);
+        runLogService.record(taskId, "MQTT_OSD_STOP", "STOPPED", "mqtt osd subscription stopped", null, 0);
     }
 
     List<DeviceTelemetryEntity> loadReplayRows(StreamTaskEntity task) {
@@ -272,6 +295,57 @@ public class DeviceTelemetryService extends ServiceImpl<DeviceTelemetryMapper, D
                 properties.getOsd().getFrameHfovDeg(),
                 properties.getOsd().getFrameVfovDeg());
         return record;
+    }
+
+    private void replayMqtt(StreamTaskEntity task) {
+        Long taskId = task.getId();
+        stopReplay(taskId);
+        MqttOsdProperties mqttProperties = buildMqttProperties();
+        log.info("{} taskId={}, brokerUrl={}, topic={}, qos={}",
+                OsdReplayLogSupport.marker("MQTT_SUBSCRIBE_START"),
+                taskId,
+                mqttProperties.getBrokerUrl(),
+                mqttProperties.getTopic(),
+                mqttProperties.getQos());
+        try {
+            MqttOsdSubscriberSession session = mqttOsdSubscriber.subscribe(mqttProperties, record -> {
+                record.setTaskId(taskId);
+                log.info("{} taskId={}, payloadPreview={}",
+                        OsdReplayLogSupport.marker("MQTT_MESSAGE_RECEIVED"),
+                        taskId,
+                        OsdReplayLogSupport.payloadPreview(record.getRawJson(), 200));
+                runLogService.record(taskId, "MQTT_OSD_RECEIVED", "RUNNING", "mqtt osd message received", null, 1);
+                String payload = payloadSupport.toPayloadJson(record);
+                osdBroadcastWebSocketHandler.broadcast(payload);
+                log.info("{} taskId={}, activeSessions={}, payloadPreview={}",
+                        OsdReplayLogSupport.marker("MQTT_BROADCASTING"),
+                        taskId,
+                        osdBroadcastWebSocketHandler.activeSessionCount(),
+                        OsdReplayLogSupport.payloadPreview(payload, 200));
+                runLogService.record(taskId, "MQTT_OSD_BROADCAST", "RUNNING", "mqtt osd message broadcasted", null, 1);
+            });
+            mqttReplaySessions.put(taskId, session);
+            runLogService.record(taskId, "MQTT_OSD_START", "RUNNING", "mqtt osd subscription started", null, 0);
+        } catch (RuntimeException e) {
+            runLogService.record(taskId, "MQTT_OSD_START", "FAILED", e.getMessage(), null, 0);
+            throw e;
+        }
+    }
+
+    private MqttOsdProperties buildMqttProperties() {
+        SimulatorProperties.Mqtt mqtt = properties.getOsd().getMqtt();
+        MqttOsdProperties mqttProperties = new MqttOsdProperties();
+        mqttProperties.setBrokerUrl(mqtt.getBrokerUrl());
+        mqttProperties.setClientId(mqtt.getClientId());
+        mqttProperties.setTopic(mqtt.getTopic());
+        mqttProperties.setUsername(mqtt.getUsername());
+        mqttProperties.setPassword(mqtt.getPassword());
+        mqttProperties.setQos(mqtt.getQos());
+        mqttProperties.setAutoReconnect(mqtt.isAutoReconnect());
+        mqttProperties.setCleanSession(mqtt.isCleanSession());
+        mqttProperties.setFrameHfovDeg(properties.getOsd().getFrameHfovDeg());
+        mqttProperties.setFrameVfovDeg(properties.getOsd().getFrameVfovDeg());
+        return mqttProperties;
     }
 
     private void sleep(long millis) {
