@@ -39,7 +39,7 @@ public class MqttOsdRecordMapper {
             record.setPublishTime(LocalDateTime.ofInstant(Instant.ofEpochMilli(message.getTimestamp()), ZoneId.systemDefault()));
         }
         record.setPublishTimeCp1(LocalDateTime.now());
-        record.setRawJson(writeMessage(message));
+        record.setRawJson(payloadJson);
         frameGeometryCalculator.populateFrameGeometry(record, frameHfovDeg, frameVfovDeg);
         return record;
     }
@@ -49,14 +49,6 @@ public class MqttOsdRecordMapper {
             return objectMapper.readValue(payloadJson, MqttOsdMessage.class);
         } catch (JsonProcessingException e) {
             throw new IllegalArgumentException("mqtt osd payload must be valid json object", e);
-        }
-    }
-
-    private String writeMessage(MqttOsdMessage message) {
-        try {
-            return objectMapper.writeValueAsString(message);
-        } catch (JsonProcessingException e) {
-            throw new IllegalStateException("failed to serialize mqtt osd payload", e);
         }
     }
 }

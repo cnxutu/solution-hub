@@ -150,6 +150,11 @@ public class StreamTaskService extends ServiceImpl<StreamTaskMapper, StreamTaskE
             return;
         }
         SimulatorProperties.Mqtt mqtt = properties.getOsd().getMqtt();
+        if (mqtt.isDirectConsumeEnabled()) {
+            log.info("MQTT_TRACE [SENDER_SKIPPED] taskId={}, reason=direct-consume-enabled", task.getId());
+            runLogService.record(task.getId(), "MQTT_SENDER_SKIP", "STOPPED", "mqtt sender script skipped because direct consume is enabled", null, 0);
+            return;
+        }
         if (!mqtt.isSenderEnabled()) {
             log.info("MQTT_TRACE [SENDER_SKIPPED] taskId={}, reason=sender-disabled", task.getId());
             runLogService.record(task.getId(), "MQTT_SENDER_SKIP", "STOPPED", "mqtt sender script disabled", null, 0);

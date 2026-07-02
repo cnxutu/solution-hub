@@ -1,9 +1,11 @@
 package com.cv.simulator.videoosd.core.mqtt;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.math.BigDecimal;
 
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class MqttOsdDataPayload {
 
     @JsonProperty("attitude_head")

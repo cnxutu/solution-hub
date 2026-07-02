@@ -50,14 +50,19 @@ public class PahoMqttOsdSubscriber implements MqttOsdSubscriber {
                     String payload = new String(message.getPayload(), StandardCharsets.UTF_8);
                     log.info("{} [MESSAGE_ARRIVED] topic={}, payloadSize={}, payloadPreview={}",
                             MQTT_TRACE_PREFIX, topic, payload.length(), payloadPreview(payload, 300));
-                    DeviceTelemetryRecord record = recordMapper.map(
-                            payload,
-                            properties.getFrameHfovDeg(),
-                            properties.getFrameVfovDeg());
-                    log.info("{} [MESSAGE_MAPPED] topic={}, publishTime={}, latitude={}, longitude={}, height={}",
-                            MQTT_TRACE_PREFIX, topic, record.getPublishTime(), record.getLatitude(),
-                            record.getLongitude(), record.getHeight());
-                    consumer.accept(record);
+                    try {
+                        DeviceTelemetryRecord record = recordMapper.map(
+                                payload,
+                                properties.getFrameHfovDeg(),
+                                properties.getFrameVfovDeg());
+                        log.info("{} [MESSAGE_MAPPED] topic={}, publishTime={}, latitude={}, longitude={}, height={}",
+                                MQTT_TRACE_PREFIX, topic, record.getPublishTime(), record.getLatitude(),
+                                record.getLongitude(), record.getHeight());
+                        consumer.accept(record);
+                    } catch (RuntimeException e) {
+                        log.error("{} [MESSAGE_DROPPED] topic={}, reason={}, payloadPreview={}",
+                                MQTT_TRACE_PREFIX, topic, e.getMessage(), payloadPreview(payload, 300), e);
+                    }
                 }
 
                 @Override

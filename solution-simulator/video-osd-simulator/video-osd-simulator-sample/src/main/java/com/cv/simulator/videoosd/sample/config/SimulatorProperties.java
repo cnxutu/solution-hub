@@ -31,6 +31,7 @@ public class SimulatorProperties {
         private double frameHfovDeg = 60.0D;
         private double frameVfovDeg = 40.0D;
         private Mqtt mqtt = new Mqtt();
+        private Sqlite sqlite = new Sqlite();
     }
 
     @Data
@@ -43,9 +44,16 @@ public class SimulatorProperties {
         private int qos = 0;
         private boolean autoReconnect = true;
         private boolean cleanSession = true;
+        private boolean directConsumeEnabled = false;
         private boolean senderEnabled = true;
         private String senderScriptPath = "D:\\drc-osd-collector\\回放.bat";
         private long senderStartDelayMillis = 0L;
+    }
+
+    @Data
+    public static class Sqlite {
+        private String location = "classpath:/static/drc_osd.sqlite3";
+        private String tableName = "drc_osd_samples";
     }
 
     @Data

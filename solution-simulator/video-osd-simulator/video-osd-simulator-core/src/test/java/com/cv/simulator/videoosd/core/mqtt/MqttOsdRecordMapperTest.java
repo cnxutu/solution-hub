@@ -48,4 +48,20 @@ class MqttOsdRecordMapperTest {
 
         assertEquals("mqtt osd payload must contain data object", exception.getMessage());
     }
+
+    @Test
+    void ignoresUnknownFieldsInsideMqttPayload() {
+        String json = """
+                {"data":{"attitude_head":87,"height":100.24636383056641,"latitude":30.18566738053386,"longitude":120.19797559348879,"vertical_speed":-1,"wind_direction":4,"wind_speed":40,"ir_lense":{"ir_zoom_factor":2,"screen_split_enable":false}},"method":"osd_info_push","seq":4392,"timestamp":1782972590947}
+                """;
+
+        DeviceTelemetryRecord record = mapper.map(json, 60.0, 40.0);
+
+        assertEquals(87F, record.getAttitudeHead());
+        assertEquals(100.24636F, record.getHeight());
+        assertEquals(new BigDecimal("30.18566738053386"), record.getLatitude());
+        assertEquals(new BigDecimal("120.19797559348879"), record.getLongitude());
+        assertEquals(-1F, record.getVerticalSpeed());
+        assertTrue(record.getRawJson().contains("\"ir_lense\""));
+    }
 }

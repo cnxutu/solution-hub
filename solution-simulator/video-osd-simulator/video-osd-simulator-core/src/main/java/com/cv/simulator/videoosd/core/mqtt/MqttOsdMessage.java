@@ -1,5 +1,8 @@
 package com.cv.simulator.videoosd.core.mqtt;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
+
+@JsonIgnoreProperties(ignoreUnknown = true)
 public class MqttOsdMessage {
 
     private MqttOsdDataPayload data;

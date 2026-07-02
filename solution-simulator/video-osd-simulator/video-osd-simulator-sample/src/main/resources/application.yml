@@ -28,7 +28,7 @@ simulator:
     path: "C:/Users/44527/AppData/Local/Microsoft/WinGet/Packages/Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe/ffmpeg-8.1.1-full_build/bin/ffmpeg.exe"
     input-patterns: "*.mp4,*.flv,*.mov,*.mkv"
   osd:
-    source-type: MQTT # MYSQL,STATIC_JSON，MQTT
+    source-type: MQTT # MYSQL,STATIC_JSON，MQTT，SQLITE_FILE
     publish-time-start: 2026-07-01T00:00:00
     publish-time-end: 2026-07-01T23:59:59
     require-task-id-match: false
@@ -43,9 +43,13 @@ simulator:
       qos: 0
       auto-reconnect: true
       clean-session: true
+      direct-consume-enabled: true # MQTT模式下是否可以 直接从MQTT服务器接收数据
       sender-enabled: true
       sender-script-path: D:\drc-osd-collector\回放.bat
       sender-start-delay-millis: 0
+    sqlite:
+      location: classpath:/static/drc_osd.sqlite3
+      table-name: drc_osd_samples
 #  osd:
 #    source-type: STATIC_JSON
 #    websocket-endpoint: ws://127.0.0.1:18083/ws/osd

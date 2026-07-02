@@ -16,7 +16,9 @@ import com.cv.simulator.videoosd.sample.config.SimulatorProperties;
 import com.cv.simulator.videoosd.sample.mapper.DeviceTelemetryMapper;
 import com.cv.simulator.videoosd.sample.pojo.entity.DeviceTelemetryEntity;
 import com.cv.simulator.videoosd.sample.pojo.entity.StreamTaskEntity;
+import com.cv.simulator.videoosd.sample.pojo.sqlite.SqliteOsdSampleRow;
 import org.junit.jupiter.api.Test;
+import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.math.BigDecimal;
@@ -55,7 +57,9 @@ class DeviceTelemetryServiceTest {
                 new PublishTimeReplayExecutor(),
                 staticJsonLoader,
                 new FixedIntervalReplayExecutor(),
-                mock(MqttOsdSubscriber.class)
+                mock(MqttOsdSubscriber.class),
+                mock(SqliteOsdSampleLoader.class),
+                new SqliteOsdSampleRecordMapper(new OsdFrameGeometryCalculator())
         );
         ReflectionTestUtils.setField(service, "baseMapper", mapper);
         when(mapper.selectList(any())).thenReturn(List.of(mysqlRow()));
@@ -76,7 +80,9 @@ class DeviceTelemetryServiceTest {
                 new PublishTimeReplayExecutor(),
                 staticJsonLoader,
                 new FixedIntervalReplayExecutor(),
-                mock(MqttOsdSubscriber.class)
+                mock(MqttOsdSubscriber.class),
+                mock(SqliteOsdSampleLoader.class),
+                new SqliteOsdSampleRecordMapper(new OsdFrameGeometryCalculator())
         );
         ReflectionTestUtils.setField(service, "baseMapper", mapper);
 
@@ -131,7 +137,9 @@ class DeviceTelemetryServiceTest {
                 new PublishTimeReplayExecutor(),
                 staticJsonLoader,
                 new FixedIntervalReplayExecutor(),
-                mock(MqttOsdSubscriber.class)
+                mock(MqttOsdSubscriber.class),
+                mock(SqliteOsdSampleLoader.class),
+                new SqliteOsdSampleRecordMapper(new OsdFrameGeometryCalculator())
         );
         ReflectionTestUtils.setField(service, "baseMapper", mapper);
 
@@ -163,7 +171,9 @@ class DeviceTelemetryServiceTest {
                 new PublishTimeReplayExecutor(),
                 staticJsonLoader,
                 new FixedIntervalReplayExecutor(),
-                mqttSubscriber
+                mqttSubscriber,
+                mock(SqliteOsdSampleLoader.class),
+                new SqliteOsdSampleRecordMapper(new OsdFrameGeometryCalculator())
         );
         ReflectionTestUtils.setField(service, "baseMapper", mapper);
         StreamTaskEntity task = new StreamTaskEntity();
@@ -197,7 +207,9 @@ class DeviceTelemetryServiceTest {
                 new PublishTimeReplayExecutor(),
                 staticJsonLoader,
                 new FixedIntervalReplayExecutor(),
-                mqttSubscriber
+                mqttSubscriber,
+                mock(SqliteOsdSampleLoader.class),
+                new SqliteOsdSampleRecordMapper(new OsdFrameGeometryCalculator())
         );
         StreamTaskEntity task = new StreamTaskEntity();
         task.setId(9L);
@@ -206,6 +218,47 @@ class DeviceTelemetryServiceTest {
         service.stopReplay(9L);
 
         assertTrue(mqttSubscriber.closed);
+    }
+
+    @Test
+    void sqliteReplayUsesSqliteFileInsteadOfMysqlOrMqtt() {
+        DeviceTelemetryMapper mapper = mock(DeviceTelemetryMapper.class);
+        StaticJsonOsdPayloadLoader staticJsonLoader = mock(StaticJsonOsdPayloadLoader.class);
+        TaskRunLogService runLogService = mock(TaskRunLogService.class);
+        MqttOsdSubscriber mqttSubscriber = mock(MqttOsdSubscriber.class);
+        SqliteOsdSampleLoader sqliteLoader = mock(SqliteOsdSampleLoader.class);
+        SimulatorProperties properties = new SimulatorProperties();
+        properties.getOsd().setSourceType(OsdSourceType.SQLITE_FILE);
+        when(sqliteLoader.loadOrderedRows()).thenReturn(List.of(sqliteRow(1L, 1782976544131L), sqliteRow(2L, 1782976544237L)));
+        List<String> payloads = new ArrayList<>();
+        RecordingDeviceTelemetryService service = new RecordingDeviceTelemetryService(
+                new OsdExcelImporter(),
+                new OsdPayloadSupport(),
+                new OsdFrameGeometryCalculator(),
+                new CapturingBroadcastHandler(payloads),
+                properties,
+                runLogService,
+                new PublishTimeReplayExecutor(),
+                staticJsonLoader,
+                new FixedIntervalReplayExecutor(),
+                mqttSubscriber,
+                sqliteLoader,
+                new SqliteOsdSampleRecordMapper(new OsdFrameGeometryCalculator())
+        );
+        ReflectionTestUtils.setField(service, "baseMapper", mapper);
+        StreamTaskEntity task = new StreamTaskEntity();
+        task.setId(21L);
+
+        service.replayByTask(task);
+
+        verify(mapper, never()).selectList(any());
+        verify(mqttSubscriber, never()).subscribe(any(), any());
+        assertEquals(List.of(106L), service.sleptMillis);
+        assertEquals(2, payloads.size());
+        JsonNode payload = readJson(payloads.get(0));
+        assertEquals("1581F8HGX255D00A0DJQ", payload.path("device_sn").asText());
+        assertEquals(21L, payload.path("task_id").asLong());
+        assertEquals(4, payload.path("corners").size());
     }
 
     private SimulatorProperties mysqlProperties() {
@@ -277,6 +330,24 @@ class DeviceTelemetryServiceTest {
         }
     }
 
+    private SqliteOsdSampleRow sqliteRow(Long id, Long messageTimestampMs) {
+        SqliteOsdSampleRow row = new SqliteOsdSampleRow();
+        row.setId(id);
+        row.setMessageTimestampMs(messageTimestampMs);
+        row.setDockSn("8UUXN4E00A05F5");
+        row.setDroneSn("1581F8HGX255D00A0DJQ");
+        row.setAttitudeHead(87.2D);
+        row.setLatitude(30.185666333377757D);
+        row.setLongitude(120.19797618637993D);
+        row.setHeight(122.29833374023438D);
+        row.setSpeedZ(-6D);
+        row.setGimbalPitch(0D);
+        row.setGimbalRoll(0D);
+        row.setGimbalYaw(87.6218311538285D);
+        row.setRawJson("{\"sample\":true}");
+        return row;
+    }
+
     private String sampleMqttPayload() {
         return """
                 {"data":{"attitude_head":87,"elevation":59.7,"gimbal_pitch":-0.1,"gimbal_roll":1.5,"gimbal_yaw":87.3602828699535,"height":100.24636383056641,"home_distance":0.0902225822210312,"horizontal_speed":0,"latitude":30.18566738053386,"longitude":120.19797559348879,"speed_x":0,"speed_y":0,"speed_z":1,"ultrasonic_height":-1,"vertical_speed":-1,"wind_direction":4,"wind_speed":40},"method":"osd_info_push","seq":4392,"timestamp":1782972590947}
@@ -305,6 +376,32 @@ class DeviceTelemetryServiceTest {
             this.properties = properties;
             consumer.accept(new MqttOsdRecordMapper(new OsdFrameGeometryCalculator()).map(sampleMqttPayload(), 60.0, 40.0));
             return () -> closed = true;
+        }
+    }
+
+    private static final class RecordingDeviceTelemetryService extends DeviceTelemetryService {
+        private final List<Long> sleptMillis = new ArrayList<>();
+
+        private RecordingDeviceTelemetryService(OsdExcelImporter excelImporter,
+                                               OsdPayloadSupport payloadSupport,
+                                               OsdFrameGeometryCalculator frameGeometryCalculator,
+                                               OsdBroadcastWebSocketHandler osdBroadcastWebSocketHandler,
+                                               SimulatorProperties properties,
+                                               TaskRunLogService runLogService,
+                                               PublishTimeReplayExecutor replayExecutor,
+                                               StaticJsonOsdPayloadLoader staticJsonOsdPayloadLoader,
+                                               FixedIntervalReplayExecutor fixedIntervalReplayExecutor,
+                                               MqttOsdSubscriber mqttOsdSubscriber,
+                                               SqliteOsdSampleLoader sqliteOsdSampleLoader,
+                                               SqliteOsdSampleRecordMapper sqliteOsdSampleRecordMapper) {
+            super(excelImporter, payloadSupport, frameGeometryCalculator, osdBroadcastWebSocketHandler, properties,
+                    runLogService, replayExecutor, staticJsonOsdPayloadLoader, fixedIntervalReplayExecutor,
+                    mqttOsdSubscriber, sqliteOsdSampleLoader, sqliteOsdSampleRecordMapper);
+        }
+
+        @Override
+        void sleep(long millis) {
+            sleptMillis.add(millis);
         }
     }
 }

@@ -17,6 +17,7 @@ import com.cv.simulator.videoosd.sample.config.SimulatorProperties;
 import com.cv.simulator.videoosd.sample.mapper.DeviceTelemetryMapper;
 import com.cv.simulator.videoosd.sample.pojo.entity.DeviceTelemetryEntity;
 import com.cv.simulator.videoosd.sample.pojo.entity.StreamTaskEntity;
+import com.cv.simulator.videoosd.sample.pojo.sqlite.SqliteOsdSampleRow;
 import com.cv.simulator.videoosd.sample.pojo.query.DeleteIdsQuery;
 import com.cv.simulator.videoosd.sample.pojo.query.TelemetryPageQuery;
 import lombok.extern.slf4j.Slf4j;
@@ -27,12 +28,17 @@ import org.springframework.transaction.annotation.Transactional;
 import java.io.InputStream;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
 public class DeviceTelemetryService extends ServiceImpl<DeviceTelemetryMapper, DeviceTelemetryEntity> {
+
+    static final long DIRECT_MQTT_SESSION_KEY = -1L;
 
     private final OsdExcelImporter excelImporter;
     private final OsdPayloadSupport payloadSupport;
@@ -44,6 +50,8 @@ public class DeviceTelemetryService extends ServiceImpl<DeviceTelemetryMapper, D
     private final StaticJsonOsdPayloadLoader staticJsonOsdPayloadLoader;
     private final FixedIntervalReplayExecutor fixedIntervalReplayExecutor;
     private final MqttOsdSubscriber mqttOsdSubscriber;
+    private final SqliteOsdSampleLoader sqliteOsdSampleLoader;
+    private final SqliteOsdSampleRecordMapper sqliteOsdSampleRecordMapper;
     private final ConcurrentMap<Long, MqttOsdSubscriberSession> mqttReplaySessions = new ConcurrentHashMap<>();
 
     public DeviceTelemetryService(OsdExcelImporter excelImporter,
@@ -55,7 +63,9 @@ public class DeviceTelemetryService extends ServiceImpl<DeviceTelemetryMapper, D
                                   PublishTimeReplayExecutor replayExecutor,
                                   StaticJsonOsdPayloadLoader staticJsonOsdPayloadLoader,
                                   FixedIntervalReplayExecutor fixedIntervalReplayExecutor,
-                                  MqttOsdSubscriber mqttOsdSubscriber) {
+                                  MqttOsdSubscriber mqttOsdSubscriber,
+                                  SqliteOsdSampleLoader sqliteOsdSampleLoader,
+                                  SqliteOsdSampleRecordMapper sqliteOsdSampleRecordMapper) {
         this.excelImporter = excelImporter;
         this.payloadSupport = payloadSupport;
         this.frameGeometryCalculator = frameGeometryCalculator;
@@ -66,6 +76,8 @@ public class DeviceTelemetryService extends ServiceImpl<DeviceTelemetryMapper, D
         this.staticJsonOsdPayloadLoader = staticJsonOsdPayloadLoader;
         this.fixedIntervalReplayExecutor = fixedIntervalReplayExecutor;
         this.mqttOsdSubscriber = mqttOsdSubscriber;
+        this.sqliteOsdSampleLoader = sqliteOsdSampleLoader;
+        this.sqliteOsdSampleRecordMapper = sqliteOsdSampleRecordMapper;
     }
 
     public PageInfoVO<DeviceTelemetryEntity> pageList(TelemetryPageQuery query) {
@@ -144,6 +156,10 @@ public class DeviceTelemetryService extends ServiceImpl<DeviceTelemetryMapper, D
             replayMqtt(task);
             return;
         }
+        if (properties.getOsd().getSourceType() == OsdSourceType.SQLITE_FILE) {
+            replaySqliteFile(task);
+            return;
+        }
         Long taskId = task.getId();
         LocalDateTime publishTimeStart = resolvePublishTimeStart(task);
         LocalDateTime publishTimeEnd = resolvePublishTimeEnd(task);
@@ -176,6 +192,58 @@ public class DeviceTelemetryService extends ServiceImpl<DeviceTelemetryMapper, D
 
     public void startRealtimeMqtt(StreamTaskEntity task) {
         replayMqtt(task);
+    }
+
+    public void startDirectRealtimeMqtt() {
+        log.info("MQTT_TRACE [DIRECT_CONSUME_START] sessionKey={}", DIRECT_MQTT_SESSION_KEY);
+        replayMqttSession(DIRECT_MQTT_SESSION_KEY, null);
+    }
+
+    private void replaySqliteFile(StreamTaskEntity task) {
+        Long taskId = task.getId();
+        List<SqliteOsdSampleRow> rows = sqliteOsdSampleLoader.loadOrderedRows();
+        log.info("{} taskId={}, location={}, tableName={}",
+                OsdReplayLogSupport.marker("SQLITE_REPLAY_START"),
+                taskId,
+                properties.getOsd().getSqlite().getLocation(),
+                properties.getOsd().getSqlite().getTableName());
+        log.info("{} taskId={}, rowCount={}",
+                OsdReplayLogSupport.marker("SQLITE_QUERY_RESULT"),
+                taskId,
+                rows.size());
+        Map<Long, SqliteOsdSampleRow> rowsById = rows.stream()
+                .collect(Collectors.toMap(SqliteOsdSampleRow::getId, Function.identity(), (left, right) -> left));
+        List<DeviceTelemetryEntity> replayRows = rows.stream()
+                .map(this::toReplayEntity)
+                .toList();
+        int sent = replayExecutor.replay(replayRows, row -> {
+            SqliteOsdSampleRow source = rowsById.get(row.getId());
+            if (source == null) {
+                throw new IllegalStateException("sqlite osd row not found for id: " + row.getId());
+            }
+            DeviceTelemetryRecord record = sqliteOsdSampleRecordMapper.map(source,
+                    properties.getOsd().getFrameHfovDeg(),
+                    properties.getOsd().getFrameVfovDeg());
+            record.setTaskId(taskId);
+            log.info("{} taskId={}, rowId={}, publishTime={}, deviceSn={}",
+                    OsdReplayLogSupport.marker("SQLITE_ROW_PICKED"),
+                    taskId, source.getId(), record.getPublishTime(), record.getDeviceSn());
+            String payload = payloadSupport.toPayloadJson(record);
+            log.info("{} taskId={}, rowId={}, payloadPreview={}",
+                    OsdReplayLogSupport.marker("SQLITE_PAYLOAD_BUILT"),
+                    taskId, source.getId(), OsdReplayLogSupport.payloadPreview(payload, 200));
+            log.info("{} taskId={}, rowId={}, activeSessions={}",
+                    OsdReplayLogSupport.marker("SQLITE_BROADCASTING"),
+                    taskId, source.getId(), osdBroadcastWebSocketHandler.activeSessionCount());
+            osdBroadcastWebSocketHandler.broadcast(payload);
+        }, this::sleep);
+        if (sent == 0) {
+            runLogService.record(taskId, "OSD_REPLAY", "STOPPED", "no osd data found in sqlite file", null, 0);
+            return;
+        }
+        log.info("{} taskId={}, sentCount={}",
+                OsdReplayLogSupport.marker("SQLITE_REPLAY_COMPLETED"), taskId, sent);
+        runLogService.record(taskId, "OSD_REPLAY", "STOPPED", "sqlite osd replay completed", null, sent);
     }
 
     private void replayStaticJson(StreamTaskEntity task) {
@@ -303,51 +371,54 @@ public class DeviceTelemetryService extends ServiceImpl<DeviceTelemetryMapper, D
     }
 
     private void replayMqtt(StreamTaskEntity task) {
-        Long taskId = task.getId();
-        stopReplay(taskId);
+        replayMqttSession(task.getId(), task.getId());
+    }
+
+    private void replayMqttSession(Long sessionKey, Long payloadTaskId) {
+        stopReplay(sessionKey);
         MqttOsdProperties mqttProperties = buildMqttProperties();
         log.info("{} taskId={}, brokerUrl={}, topic={}, qos={}",
                 OsdReplayLogSupport.marker("MQTT_SUBSCRIBE_START"),
-                taskId,
+                sessionKey,
                 mqttProperties.getBrokerUrl(),
                 mqttProperties.getTopic(),
                 mqttProperties.getQos());
         log.info("MQTT_TRACE [SUBSCRIBE_PREPARING] taskId={}, brokerUrl={}, topic={}, qos={}",
-                taskId,
+                sessionKey,
                 mqttProperties.getBrokerUrl(),
                 mqttProperties.getTopic(),
                 mqttProperties.getQos());
         try {
             MqttOsdSubscriberSession session = mqttOsdSubscriber.subscribe(mqttProperties, record -> {
-                record.setTaskId(taskId);
+                record.setTaskId(payloadTaskId);
                 log.info("MQTT_TRACE [MESSAGE_ARRIVED] taskId={}, publishTime={}, latitude={}, longitude={}",
-                        taskId, record.getPublishTime(), record.getLatitude(), record.getLongitude());
+                        sessionKey, record.getPublishTime(), record.getLatitude(), record.getLongitude());
                 log.info("{} taskId={}, payloadPreview={}",
                         OsdReplayLogSupport.marker("MQTT_MESSAGE_RECEIVED"),
-                        taskId,
+                        sessionKey,
                         OsdReplayLogSupport.payloadPreview(record.getRawJson(), 200));
-                runLogService.record(taskId, "MQTT_OSD_RECEIVED", "RUNNING", "mqtt osd message received", null, 1);
+                recordRunLog(sessionKey, "MQTT_OSD_RECEIVED", "RUNNING", "mqtt osd message received", null, 1);
                 log.info("MQTT_TRACE [MESSAGE_MAPPED] taskId={}, attitudeHead={}, elevation={}, height={}",
-                        taskId, record.getAttitudeHead(), record.getElevation(), record.getHeight());
+                        sessionKey, record.getAttitudeHead(), record.getElevation(), record.getHeight());
                 String payload = payloadSupport.toPayloadJson(record);
                 log.info("OSD_TRACE [MQTT_BROADCASTING] taskId={}, activeSessions={}",
-                        taskId, osdBroadcastWebSocketHandler.activeSessionCount());
+                        sessionKey, osdBroadcastWebSocketHandler.activeSessionCount());
                 osdBroadcastWebSocketHandler.broadcast(payload);
                 log.info("OSD_TRACE [WS_BROADCAST_DISPATCHED] taskId={}, payloadPreview={}",
-                        taskId, OsdReplayLogSupport.payloadPreview(payload, 200));
+                        sessionKey, OsdReplayLogSupport.payloadPreview(payload, 200));
                 log.info("{} taskId={}, activeSessions={}, payloadPreview={}",
                         OsdReplayLogSupport.marker("MQTT_BROADCASTING"),
-                        taskId,
+                        sessionKey,
                         osdBroadcastWebSocketHandler.activeSessionCount(),
                         OsdReplayLogSupport.payloadPreview(payload, 200));
-                runLogService.record(taskId, "MQTT_OSD_BROADCAST", "RUNNING", "mqtt osd message broadcasted", null, 1);
+                recordRunLog(sessionKey, "MQTT_OSD_BROADCAST", "RUNNING", "mqtt osd message broadcasted", null, 1);
             });
-            mqttReplaySessions.put(taskId, session);
-            log.info("MQTT_TRACE [SUBSCRIBED] taskId={}, topic={}", taskId, mqttProperties.getTopic());
-            runLogService.record(taskId, "MQTT_OSD_START", "RUNNING", "mqtt osd subscription started", null, 0);
+            mqttReplaySessions.put(sessionKey, session);
+            log.info("MQTT_TRACE [SUBSCRIBED] taskId={}, topic={}", sessionKey, mqttProperties.getTopic());
+            recordRunLog(sessionKey, "MQTT_OSD_START", "RUNNING", "mqtt osd subscription started", null, 0);
         } catch (RuntimeException e) {
-            log.error("MQTT_TRACE [SUBSCRIBE_FAILED] taskId={}, message={}", taskId, e.getMessage(), e);
-            runLogService.record(taskId, "MQTT_OSD_START", "FAILED", e.getMessage(), null, 0);
+            log.error("MQTT_TRACE [SUBSCRIBE_FAILED] taskId={}, message={}", sessionKey, e.getMessage(), e);
+            recordRunLog(sessionKey, "MQTT_OSD_START", "FAILED", e.getMessage(), null, 0);
             throw e;
         }
     }
@@ -368,7 +439,7 @@ public class DeviceTelemetryService extends ServiceImpl<DeviceTelemetryMapper, D
         return mqttProperties;
     }
 
-    private void sleep(long millis) {
+    void sleep(long millis) {
         try {
             Thread.sleep(millis);
         } catch (InterruptedException e) {
@@ -396,5 +467,21 @@ public class DeviceTelemetryService extends ServiceImpl<DeviceTelemetryMapper, D
             return null;
         }
         return LocalDateTime.parse(value.trim());
+    }
+
+    private DeviceTelemetryEntity toReplayEntity(SqliteOsdSampleRow row) {
+        DeviceTelemetryEntity entity = new DeviceTelemetryEntity();
+        entity.setId(row.getId());
+        entity.setPublishTime(sqliteOsdSampleRecordMapper.map(row,
+                properties.getOsd().getFrameHfovDeg(),
+                properties.getOsd().getFrameVfovDeg()).getPublishTime());
+        return entity;
+    }
+
+    private void recordRunLog(Long taskId, String stage, String status, String message, String detail, int count) {
+        if (taskId == null || taskId <= 0) {
+            return;
+        }
+        runLogService.record(taskId, stage, status, message, detail, count);
     }
 }
