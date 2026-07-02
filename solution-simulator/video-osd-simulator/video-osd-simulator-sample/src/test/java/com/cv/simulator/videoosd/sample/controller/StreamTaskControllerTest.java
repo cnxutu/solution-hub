@@ -2,7 +2,7 @@ package com.cv.simulator.videoosd.sample.controller;
 
 import com.cv.simulator.videoosd.core.enums.TaskStatus;
 import com.cv.simulator.videoosd.core.runtime.StreamTaskSnapshot;
-import com.cv.simulator.videoosd.sample.service.DeviceTelemetryService;
+import com.cv.simulator.videoosd.sample.service.StreamTaskLifecycleService;
 import com.cv.simulator.videoosd.sample.service.StreamTaskService;
 import org.junit.jupiter.api.Test;
 
@@ -18,15 +18,14 @@ class StreamTaskControllerTest {
     @Test
     void stopAlsoStopsMqttReplay() {
         StreamTaskService streamTaskService = mock(StreamTaskService.class);
-        DeviceTelemetryService telemetryService = mock(DeviceTelemetryService.class);
+        StreamTaskLifecycleService lifecycleService = mock(StreamTaskLifecycleService.class);
         StreamTaskSnapshot snapshot = new StreamTaskSnapshot(7L, TaskStatus.STOPPED, LocalDateTime.now(), "stopped");
-        when(streamTaskService.stop(7L)).thenReturn(snapshot);
-        StreamTaskController controller = new StreamTaskController(streamTaskService, telemetryService);
+        when(lifecycleService.stop(7L)).thenReturn(snapshot);
+        StreamTaskController controller = new StreamTaskController(streamTaskService, lifecycleService);
 
         StreamTaskSnapshot result = controller.stop(7L).getData();
 
         assertEquals(snapshot, result);
-        verify(streamTaskService).stop(7L);
-        verify(telemetryService).stopReplay(7L);
+        verify(lifecycleService).stop(7L);
     }
 }

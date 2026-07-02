@@ -174,6 +174,10 @@ public class DeviceTelemetryService extends ServiceImpl<DeviceTelemetryMapper, D
         runLogService.record(taskId, "OSD_REPLAY", "STOPPED", "osd replay completed", null, sent);
     }
 
+    public void startRealtimeMqtt(StreamTaskEntity task) {
+        replayMqtt(task);
+    }
+
     private void replayStaticJson(StreamTaskEntity task) {
         Long taskId = task.getId();
         String location = properties.getOsd().getStaticJsonLocation();
@@ -211,6 +215,7 @@ public class DeviceTelemetryService extends ServiceImpl<DeviceTelemetryMapper, D
             return;
         }
         session.close();
+        log.info("MQTT_TRACE [SUBSCRIBE_STOPPED] taskId={}", taskId);
         log.info("{} taskId={}", OsdReplayLogSupport.marker("MQTT_SUBSCRIBE_STOP"), taskId);
         runLogService.record(taskId, "MQTT_OSD_STOP", "STOPPED", "mqtt osd subscription stopped", null, 0);
     }
@@ -307,16 +312,29 @@ public class DeviceTelemetryService extends ServiceImpl<DeviceTelemetryMapper, D
                 mqttProperties.getBrokerUrl(),
                 mqttProperties.getTopic(),
                 mqttProperties.getQos());
+        log.info("MQTT_TRACE [SUBSCRIBE_PREPARING] taskId={}, brokerUrl={}, topic={}, qos={}",
+                taskId,
+                mqttProperties.getBrokerUrl(),
+                mqttProperties.getTopic(),
+                mqttProperties.getQos());
         try {
             MqttOsdSubscriberSession session = mqttOsdSubscriber.subscribe(mqttProperties, record -> {
                 record.setTaskId(taskId);
+                log.info("MQTT_TRACE [MESSAGE_ARRIVED] taskId={}, publishTime={}, latitude={}, longitude={}",
+                        taskId, record.getPublishTime(), record.getLatitude(), record.getLongitude());
                 log.info("{} taskId={}, payloadPreview={}",
                         OsdReplayLogSupport.marker("MQTT_MESSAGE_RECEIVED"),
                         taskId,
                         OsdReplayLogSupport.payloadPreview(record.getRawJson(), 200));
                 runLogService.record(taskId, "MQTT_OSD_RECEIVED", "RUNNING", "mqtt osd message received", null, 1);
+                log.info("MQTT_TRACE [MESSAGE_MAPPED] taskId={}, attitudeHead={}, elevation={}, height={}",
+                        taskId, record.getAttitudeHead(), record.getElevation(), record.getHeight());
                 String payload = payloadSupport.toPayloadJson(record);
+                log.info("OSD_TRACE [MQTT_BROADCASTING] taskId={}, activeSessions={}",
+                        taskId, osdBroadcastWebSocketHandler.activeSessionCount());
                 osdBroadcastWebSocketHandler.broadcast(payload);
+                log.info("OSD_TRACE [WS_BROADCAST_DISPATCHED] taskId={}, payloadPreview={}",
+                        taskId, OsdReplayLogSupport.payloadPreview(payload, 200));
                 log.info("{} taskId={}, activeSessions={}, payloadPreview={}",
                         OsdReplayLogSupport.marker("MQTT_BROADCASTING"),
                         taskId,
@@ -325,8 +343,10 @@ public class DeviceTelemetryService extends ServiceImpl<DeviceTelemetryMapper, D
                 runLogService.record(taskId, "MQTT_OSD_BROADCAST", "RUNNING", "mqtt osd message broadcasted", null, 1);
             });
             mqttReplaySessions.put(taskId, session);
+            log.info("MQTT_TRACE [SUBSCRIBED] taskId={}, topic={}", taskId, mqttProperties.getTopic());
             runLogService.record(taskId, "MQTT_OSD_START", "RUNNING", "mqtt osd subscription started", null, 0);
         } catch (RuntimeException e) {
+            log.error("MQTT_TRACE [SUBSCRIBE_FAILED] taskId={}, message={}", taskId, e.getMessage(), e);
             runLogService.record(taskId, "MQTT_OSD_START", "FAILED", e.getMessage(), null, 0);
             throw e;
         }

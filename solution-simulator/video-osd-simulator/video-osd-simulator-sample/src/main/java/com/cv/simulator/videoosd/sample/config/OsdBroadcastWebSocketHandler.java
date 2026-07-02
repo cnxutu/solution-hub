@@ -43,6 +43,10 @@ public class OsdBroadcastWebSocketHandler extends TextWebSocketHandler {
         sessions.removeIf(session -> !session.isOpen());
         log.info("{} activeSessions={}, payloadSize={}",
                 OsdReplayLogSupport.marker("WS_BROADCAST_START"), sessions.size(), payloadJson.length());
+        if (sessions.isEmpty()) {
+            log.warn("OSD_TRACE [WS_NO_ACTIVE_SESSION] payloadSize={}, message=no websocket clients connected to /ws/osd",
+                    payloadJson.length());
+        }
         for (WebSocketSession session : sessions) {
             try {
                 session.sendMessage(message);

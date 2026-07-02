@@ -145,6 +145,30 @@ public class StreamTaskService extends ServiceImpl<StreamTaskMapper, StreamTaskE
         return snapshot;
     }
 
+    public void startMqttSender(StreamTaskEntity task) {
+        if (properties.getOsd().getSourceType() != com.cv.simulator.videoosd.sample.config.OsdSourceType.MQTT) {
+            return;
+        }
+        SimulatorProperties.Mqtt mqtt = properties.getOsd().getMqtt();
+        if (!mqtt.isSenderEnabled()) {
+            log.info("MQTT_TRACE [SENDER_SKIPPED] taskId={}, reason=sender-disabled", task.getId());
+            runLogService.record(task.getId(), "MQTT_SENDER_SKIP", "STOPPED", "mqtt sender script disabled", null, 0);
+            return;
+        }
+        long delayMillis = Math.max(mqtt.getSenderStartDelayMillis(), 0L);
+        String scriptPath = mqtt.getSenderScriptPath();
+        log.info("MQTT_TRACE [SENDER_PREPARING] taskId={}, delayMillis={}, scriptPath={}",
+                task.getId(), delayMillis, scriptPath);
+        runLogService.record(task.getId(), "MQTT_SENDER_PREPARE", "RUNNING", "mqtt sender script preparing", scriptPath, 0);
+        if (delayMillis > 0) {
+            pause(delayMillis);
+        }
+        List<String> command = List.of("cmd.exe", "/c", scriptPath);
+        runtime.startSidecar(task.getId(), command, "mqtt-osd-sender");
+        log.info("MQTT_TRACE [SENDER_STARTED] taskId={}, command={}", task.getId(), String.join(" ", command));
+        runLogService.record(task.getId(), "MQTT_SENDER_START", "RUNNING", "mqtt sender script started", String.join(" ", command), 0);
+    }
+
     public StreamTaskSnapshot status(Long id) {
         StreamTaskSnapshot snapshot = runtime.status(id);
         log.info("stream-task runtime status: taskId={}, status={}, message={}", id, snapshot.getStatus(), snapshot.getMessage());
@@ -265,5 +289,14 @@ public class StreamTaskService extends ServiceImpl<StreamTaskMapper, StreamTaskE
             return null;
         }
         return LocalDateTime.parse(value.trim());
+    }
+
+    void pause(long millis) {
+        try {
+            Thread.sleep(millis);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("mqtt sender start interrupted", e);
+        }
     }
 }

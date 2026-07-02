@@ -43,6 +43,9 @@ public class SimulatorProperties {
         private int qos = 0;
         private boolean autoReconnect = true;
         private boolean cleanSession = true;
+        private boolean senderEnabled = true;
+        private String senderScriptPath = "D:\\drc-osd-collector\\回放.bat";
+        private long senderStartDelayMillis = 0L;
     }
 
     @Data

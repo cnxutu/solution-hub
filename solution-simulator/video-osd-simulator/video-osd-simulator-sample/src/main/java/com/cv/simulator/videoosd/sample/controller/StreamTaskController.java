@@ -6,7 +6,7 @@ import com.cv.simulator.videoosd.sample.common.ApiResult;
 import com.cv.simulator.videoosd.sample.pojo.entity.StreamTaskEntity;
 import com.cv.simulator.videoosd.sample.pojo.query.DeleteIdsQuery;
 import com.cv.simulator.videoosd.sample.pojo.query.StreamTaskPageQuery;
-import com.cv.simulator.videoosd.sample.service.DeviceTelemetryService;
+import com.cv.simulator.videoosd.sample.service.StreamTaskLifecycleService;
 import com.cv.simulator.videoosd.sample.service.StreamTaskService;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,11 +20,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class StreamTaskController {
 
     private final StreamTaskService streamTaskService;
-    private final DeviceTelemetryService telemetryService;
+    private final StreamTaskLifecycleService lifecycleService;
 
-    public StreamTaskController(StreamTaskService streamTaskService, DeviceTelemetryService telemetryService) {
+    public StreamTaskController(StreamTaskService streamTaskService, StreamTaskLifecycleService lifecycleService) {
         this.streamTaskService = streamTaskService;
-        this.telemetryService = telemetryService;
+        this.lifecycleService = lifecycleService;
     }
 
     @PostMapping("/pageList")
@@ -55,16 +55,12 @@ public class StreamTaskController {
 
     @PostMapping("/start/{id}")
     public ApiResult<StreamTaskSnapshot> start(@PathVariable Long id) {
-        StreamTaskSnapshot snapshot = streamTaskService.start(id);
-        telemetryService.replayByTask(streamTaskService.detail(id));
-        return ApiResult.success(snapshot);
+        return ApiResult.success(lifecycleService.start(id));
     }
 
     @PostMapping("/stop/{id}")
     public ApiResult<StreamTaskSnapshot> stop(@PathVariable Long id) {
-        StreamTaskSnapshot snapshot = streamTaskService.stop(id);
-        telemetryService.stopReplay(id);
-        return ApiResult.success(snapshot);
+        return ApiResult.success(lifecycleService.stop(id));
     }
 
     @GetMapping("/status/{id}")

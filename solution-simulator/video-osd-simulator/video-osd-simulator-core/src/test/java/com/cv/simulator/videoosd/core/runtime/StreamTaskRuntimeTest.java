@@ -24,12 +24,29 @@ class StreamTaskRuntimeTest {
         assertEquals(true, launcher.handle.destroyed);
     }
 
+    @Test
+    void stopsManagedSidecarProcessesTogetherWithPrimaryProcess() {
+        FakeLauncher launcher = new FakeLauncher();
+        StreamTaskRuntime runtime = new StreamTaskRuntime(launcher);
+
+        runtime.start(1L, List.of("ffmpeg", "-version"));
+        runtime.startSidecar(1L, List.of("cmd.exe", "/c", "D:\\drc-osd-collector\\回放.bat"), "mqtt-sender");
+        runtime.stop(1L);
+
+        assertEquals(2, launcher.launchCount);
+        assertEquals(true, launcher.handle.destroyed);
+        assertEquals(true, launcher.sidecarHandle.destroyed);
+    }
+
     private static class FakeLauncher implements FfmpegProcessLauncher {
         private final FakeHandle handle = new FakeHandle();
+        private final FakeHandle sidecarHandle = new FakeHandle();
+        private int launchCount;
 
         @Override
         public FfmpegProcessHandle launch(List<String> command) {
-            return handle;
+            launchCount++;
+            return launchCount == 1 ? handle : sidecarHandle;
         }
     }
 

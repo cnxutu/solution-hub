@@ -43,6 +43,9 @@ simulator:
       qos: 0
       auto-reconnect: true
       clean-session: true
+      sender-enabled: true
+      sender-script-path: D:\drc-osd-collector\回放.bat
+      sender-start-delay-millis: 0
 #  osd:
 #    source-type: STATIC_JSON
 #    websocket-endpoint: ws://127.0.0.1:18083/ws/osd
