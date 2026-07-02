@@ -35,7 +35,7 @@ public class SimulatorProperties {
 
     @Data
     public static class Mqtt {
-        private String brokerUrl = "tcp://127.0.0.1:1883";
+        private String brokerUrl = "tcp://192.168.1.112:1883";
         private String clientId = "video-osd-simulator";
         private String topic = "thing/product/8UUXN4E00A05F5/drc/up";
         private String username;

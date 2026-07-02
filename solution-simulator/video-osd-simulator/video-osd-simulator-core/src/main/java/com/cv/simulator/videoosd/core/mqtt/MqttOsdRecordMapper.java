@@ -38,6 +38,7 @@ public class MqttOsdRecordMapper {
         if (message.getTimestamp() != null) {
             record.setPublishTime(LocalDateTime.ofInstant(Instant.ofEpochMilli(message.getTimestamp()), ZoneId.systemDefault()));
         }
+        record.setPublishTimeCp1(LocalDateTime.now());
         record.setRawJson(writeMessage(message));
         frameGeometryCalculator.populateFrameGeometry(record, frameHfovDeg, frameVfovDeg);
         return record;

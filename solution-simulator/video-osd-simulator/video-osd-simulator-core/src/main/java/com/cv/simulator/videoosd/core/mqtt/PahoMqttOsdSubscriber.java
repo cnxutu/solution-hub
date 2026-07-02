@@ -7,12 +7,16 @@ import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.eclipse.paho.client.mqttv3.MqttException;
 import org.eclipse.paho.client.mqttv3.MqttMessage;
 import org.eclipse.paho.client.mqttv3.persist.MemoryPersistence;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
 import java.util.function.Consumer;
 
 public class PahoMqttOsdSubscriber implements MqttOsdSubscriber {
 
+    private static final String MQTT_TRACE_PREFIX = "MQTT_TRACE";
+    private static final Logger log = LoggerFactory.getLogger(PahoMqttOsdSubscriber.class);
     private final MqttOsdRecordMapper recordMapper;
 
     public PahoMqttOsdSubscriber(MqttOsdRecordMapper recordMapper) {
@@ -24,23 +28,35 @@ public class PahoMqttOsdSubscriber implements MqttOsdSubscriber {
         validate(properties);
         try {
             String clientId = hasText(properties.getClientId()) ? properties.getClientId() : MqttClient.generateClientId();
+            log.info("{} [CONNECTING] brokerUrl={}, clientId={}, topic={}, qos={}",
+                    MQTT_TRACE_PREFIX, properties.getBrokerUrl(), clientId, properties.getTopic(), properties.getQos());
             MqttClient client = new MqttClient(properties.getBrokerUrl(), clientId, new MemoryPersistence());
             client.setCallback(new MqttCallbackExtended() {
                 @Override
                 public void connectComplete(boolean reconnect, String serverURI) {
+                    log.info("{} [CONNECTED] reconnect={}, serverUri={}, topic={}",
+                            MQTT_TRACE_PREFIX, reconnect, serverURI, properties.getTopic());
                 }
 
                 @Override
                 public void connectionLost(Throwable cause) {
+                    log.error("{} [CONNECTION_LOST] brokerUrl={}, topic={}, message={}",
+                            MQTT_TRACE_PREFIX, properties.getBrokerUrl(), properties.getTopic(),
+                            cause == null ? "unknown" : cause.getMessage(), cause);
                 }
 
                 @Override
                 public void messageArrived(String topic, MqttMessage message) {
                     String payload = new String(message.getPayload(), StandardCharsets.UTF_8);
+                    log.info("{} [MESSAGE_ARRIVED] topic={}, payloadSize={}, payloadPreview={}",
+                            MQTT_TRACE_PREFIX, topic, payload.length(), payloadPreview(payload, 300));
                     DeviceTelemetryRecord record = recordMapper.map(
                             payload,
                             properties.getFrameHfovDeg(),
                             properties.getFrameVfovDeg());
+                    log.info("{} [MESSAGE_MAPPED] topic={}, publishTime={}, latitude={}, longitude={}, height={}",
+                            MQTT_TRACE_PREFIX, topic, record.getPublishTime(), record.getLatitude(),
+                            record.getLongitude(), record.getHeight());
                     consumer.accept(record);
                 }
 
@@ -50,6 +66,8 @@ public class PahoMqttOsdSubscriber implements MqttOsdSubscriber {
             });
             client.connect(buildOptions(properties));
             client.subscribe(properties.getTopic(), properties.getQos());
+            log.info("{} [SUBSCRIBED] brokerUrl={}, clientId={}, topic={}, qos={}",
+                    MQTT_TRACE_PREFIX, properties.getBrokerUrl(), clientId, properties.getTopic(), properties.getQos());
             return () -> closeClient(client, properties.getTopic());
         } catch (MqttException e) {
             throw new IllegalStateException("failed to subscribe mqtt osd topic", e);
@@ -72,14 +90,17 @@ public class PahoMqttOsdSubscriber implements MqttOsdSubscriber {
     private void closeClient(MqttClient client, String topic) {
         try {
             if (client.isConnected()) {
+                log.info("{} [UNSUBSCRIBING] topic={}", MQTT_TRACE_PREFIX, topic);
                 client.unsubscribe(topic);
                 client.disconnect();
+                log.info("{} [DISCONNECTED] topic={}", MQTT_TRACE_PREFIX, topic);
             }
         } catch (MqttException e) {
             throw new IllegalStateException("failed to close mqtt osd subscriber", e);
         } finally {
             try {
                 client.close();
+                log.info("{} [CLOSED] topic={}", MQTT_TRACE_PREFIX, topic);
             } catch (MqttException e) {
                 throw new IllegalStateException("failed to release mqtt osd subscriber", e);
             }
@@ -100,5 +121,15 @@ public class PahoMqttOsdSubscriber implements MqttOsdSubscriber {
 
     private boolean hasText(String value) {
         return value != null && !value.trim().isEmpty();
+    }
+
+    private String payloadPreview(String payload, int maxLength) {
+        if (payload == null) {
+            return "null";
+        }
+        if (payload.length() <= maxLength) {
+            return payload;
+        }
+        return payload.substring(0, maxLength) + "...(" + payload.length() + " chars)";
     }
 }

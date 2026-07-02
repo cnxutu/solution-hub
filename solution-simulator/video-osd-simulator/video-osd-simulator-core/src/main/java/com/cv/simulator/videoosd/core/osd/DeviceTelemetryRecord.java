@@ -90,6 +90,8 @@ public class DeviceTelemetryRecord {
     private String trackId;
     /** OSD 发布时间。 */
     private LocalDateTime publishTime;
+
+    private LocalDateTime publishTimeCp1;
     /** 原始 JSON 对象，仅用于兼容额外动态字段。 */
     private String rawJson;
     /** 计算后的画面中心点。 */
@@ -207,4 +209,12 @@ public class DeviceTelemetryRecord {
     public void setUpdatedBy(String updatedBy) { this.updatedBy = updatedBy; }
     public Integer getIsDeleted() { return isDeleted; }
     public void setIsDeleted(Integer isDeleted) { this.isDeleted = isDeleted; }
+
+    public LocalDateTime getPublishTimeCp1() {
+        return publishTimeCp1;
+    }
+
+    public void setPublishTimeCp1(LocalDateTime publishTimeCp1) {
+        this.publishTimeCp1 = publishTimeCp1;
+    }
 }

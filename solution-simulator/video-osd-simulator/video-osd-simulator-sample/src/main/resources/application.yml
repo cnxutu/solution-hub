@@ -28,14 +28,14 @@ simulator:
     path: "C:/Users/44527/AppData/Local/Microsoft/WinGet/Packages/Gyan.FFmpeg_Microsoft.Winget.Source_8wekyb3d8bbwe/ffmpeg-8.1.1-full_build/bin/ffmpeg.exe"
     input-patterns: "*.mp4,*.flv,*.mov,*.mkv"
   osd:
-    source-type: MYSQL
+    source-type: MQTT # MYSQL,STATIC_JSON，MQTT
     publish-time-start: 2026-07-01T00:00:00
     publish-time-end: 2026-07-01T23:59:59
     require-task-id-match: false
     frame-hfov-deg: 60.0
     frame-vfov-deg: 40.0
     mqtt:
-      broker-url: tcp://127.0.0.1:1883
+      broker-url: tcp://192.168.1.112:1883
       client-id: video-osd-simulator
       topic: thing/product/8UUXN4E00A05F5/drc/up
       username:
