@@ -47,6 +47,9 @@ public class PahoMqttOsdSubscriber implements MqttOsdSubscriber {
                 public void messageArrived(String topic, MqttMessage message) {
                     long startedAtNanos = System.nanoTime();
                     String payload = new String(message.getPayload(), StandardCharsets.UTF_8);
+                    log.info("{} [MESSAGE_ARRIVED] topic={}, payloadSize={}, payloadPreview={}",
+                            MQTT_TRACE_PREFIX, topic, payload.length(), payloadPreview(payload, 300));
+
                     try {
                         DeviceTelemetryRecord record = recordMapper.map(
                                 payload,
