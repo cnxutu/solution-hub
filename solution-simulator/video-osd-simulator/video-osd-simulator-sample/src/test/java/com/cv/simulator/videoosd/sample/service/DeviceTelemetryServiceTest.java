@@ -1,6 +1,7 @@
 package com.cv.simulator.videoosd.sample.service;
 
 import com.cv.simulator.videoosd.core.mqtt.MqttOsdProperties;
+import com.cv.simulator.videoosd.core.mqtt.MqttOsdMessageHandler;
 import com.cv.simulator.videoosd.core.mqtt.MqttOsdRecordMapper;
 import com.cv.simulator.videoosd.core.mqtt.MqttOsdSubscriber;
 import com.cv.simulator.videoosd.core.mqtt.MqttOsdSubscriberSession;
@@ -17,15 +18,19 @@ import com.cv.simulator.videoosd.sample.mapper.DeviceTelemetryMapper;
 import com.cv.simulator.videoosd.sample.pojo.entity.DeviceTelemetryEntity;
 import com.cv.simulator.videoosd.sample.pojo.entity.StreamTaskEntity;
 import com.cv.simulator.videoosd.sample.pojo.sqlite.SqliteOsdSampleRow;
+import ch.qos.logback.classic.Level;
+import ch.qos.logback.classic.Logger;
+import ch.qos.logback.classic.spi.ILoggingEvent;
+import ch.qos.logback.core.read.ListAppender;
 import org.junit.jupiter.api.Test;
 import org.springframework.core.io.DefaultResourceLoader;
 import org.springframework.test.util.ReflectionTestUtils;
+import org.slf4j.LoggerFactory;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -188,6 +193,86 @@ class DeviceTelemetryServiceTest {
         assertEquals(87D, payload.path("attitude_head").asDouble());
         assertEquals(30.18566738053386D, payload.path("frame_center").path("lat").asDouble());
         assertEquals(4, payload.path("corners").size());
+    }
+
+    @Test
+    void mqttReplayLogsTimestampAndPipelineCost() {
+        TaskRunLogService runLogService = mock(TaskRunLogService.class);
+        CapturingMqttOsdSubscriber mqttSubscriber = new CapturingMqttOsdSubscriber();
+        SimulatorProperties properties = new SimulatorProperties();
+        properties.getOsd().setSourceType(OsdSourceType.MQTT);
+        properties.getOsd().getMqtt().setTopic("thing/product/8UUXN4E00A05F5/drc/up");
+        DeviceTelemetryService service = new DeviceTelemetryService(
+                new OsdExcelImporter(),
+                new OsdPayloadSupport(),
+                new OsdFrameGeometryCalculator(),
+                new CapturingBroadcastHandler(new ArrayList<>()),
+                properties,
+                runLogService,
+                new PublishTimeReplayExecutor(),
+                mock(StaticJsonOsdPayloadLoader.class),
+                new FixedIntervalReplayExecutor(),
+                mqttSubscriber,
+                mock(SqliteOsdSampleLoader.class),
+                new SqliteOsdSampleRecordMapper(new OsdFrameGeometryCalculator())
+        );
+        StreamTaskEntity task = new StreamTaskEntity();
+        task.setId(18L);
+        Logger logger = (Logger) LoggerFactory.getLogger(DeviceTelemetryService.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+
+        try {
+            service.replayByTask(task);
+        } finally {
+            logger.detachAppender(appender);
+        }
+
+        assertTrue(appender.list.stream().anyMatch(event ->
+                event.getLevel() == Level.INFO
+                        && event.getFormattedMessage().contains("MQTT_TRACE [MQTT_TO_WS_COST]")
+                        && event.getFormattedMessage().contains("timestamp=1782972590947")));
+    }
+
+    @Test
+    void mqttReplayWarnsWhenPipelineCostExceedsOneSecond() {
+        TaskRunLogService runLogService = mock(TaskRunLogService.class);
+        CapturingMqttOsdSubscriber mqttSubscriber = new CapturingMqttOsdSubscriber();
+        SimulatorProperties properties = new SimulatorProperties();
+        properties.getOsd().setSourceType(OsdSourceType.MQTT);
+        properties.getOsd().getMqtt().setTopic("thing/product/8UUXN4E00A05F5/drc/up");
+        DeviceTelemetryService service = new DeviceTelemetryService(
+                new OsdExcelImporter(),
+                new OsdPayloadSupport(),
+                new OsdFrameGeometryCalculator(),
+                new SlowCapturingBroadcastHandler(new ArrayList<>(), 1_100L),
+                properties,
+                runLogService,
+                new PublishTimeReplayExecutor(),
+                mock(StaticJsonOsdPayloadLoader.class),
+                new FixedIntervalReplayExecutor(),
+                mqttSubscriber,
+                mock(SqliteOsdSampleLoader.class),
+                new SqliteOsdSampleRecordMapper(new OsdFrameGeometryCalculator())
+        );
+        StreamTaskEntity task = new StreamTaskEntity();
+        task.setId(19L);
+        Logger logger = (Logger) LoggerFactory.getLogger(DeviceTelemetryService.class);
+        ListAppender<ILoggingEvent> appender = new ListAppender<>();
+        appender.start();
+        logger.addAppender(appender);
+
+        try {
+            service.replayByTask(task);
+        } finally {
+            logger.detachAppender(appender);
+        }
+
+        assertTrue(appender.list.stream().anyMatch(event ->
+                event.getLevel() == Level.WARN
+                        && event.getFormattedMessage().contains("MQTT_TRACE [MQTT_TO_WS_COST]")
+                        && event.getFormattedMessage().contains("thresholdMillis=1000")));
     }
 
     @Test
@@ -367,14 +452,35 @@ class DeviceTelemetryServiceTest {
         }
     }
 
+    private static final class SlowCapturingBroadcastHandler extends CapturingBroadcastHandler {
+        private final long delayMillis;
+
+        private SlowCapturingBroadcastHandler(List<String> payloads, long delayMillis) {
+            super(payloads);
+            this.delayMillis = delayMillis;
+        }
+
+        @Override
+        public void broadcast(String payload) {
+            try {
+                Thread.sleep(delayMillis);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new AssertionError("sleep interrupted", e);
+            }
+            super.broadcast(payload);
+        }
+    }
+
     private final class CapturingMqttOsdSubscriber implements MqttOsdSubscriber {
         private MqttOsdProperties properties;
         private boolean closed;
 
         @Override
-        public MqttOsdSubscriberSession subscribe(MqttOsdProperties properties, Consumer<DeviceTelemetryRecord> consumer) {
+        public MqttOsdSubscriberSession subscribe(MqttOsdProperties properties, MqttOsdMessageHandler handler) {
             this.properties = properties;
-            consumer.accept(new MqttOsdRecordMapper(new OsdFrameGeometryCalculator()).map(sampleMqttPayload(), 60.0, 40.0));
+            handler.handle(new MqttOsdRecordMapper(new OsdFrameGeometryCalculator()).map(sampleMqttPayload(), 60.0, 40.0),
+                    System.nanoTime());
             return () -> closed = true;
         }
     }

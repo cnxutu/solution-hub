@@ -11,6 +11,8 @@ import com.cv.simulator.videoosd.core.osd.DeviceTelemetryRecord;
 import com.cv.simulator.videoosd.core.osd.OsdExcelImporter;
 import com.cv.simulator.videoosd.core.osd.OsdFrameGeometryCalculator;
 import com.cv.simulator.videoosd.core.osd.OsdPayloadSupport;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.cv.simulator.videoosd.sample.config.OsdBroadcastWebSocketHandler;
 import com.cv.simulator.videoosd.sample.config.OsdSourceType;
 import com.cv.simulator.videoosd.sample.config.SimulatorProperties;
@@ -39,6 +41,8 @@ import java.util.stream.Collectors;
 public class DeviceTelemetryService extends ServiceImpl<DeviceTelemetryMapper, DeviceTelemetryEntity> {
 
     static final long DIRECT_MQTT_SESSION_KEY = -1L;
+    private static final long MQTT_WS_WARN_THRESHOLD_MILLIS = 1_000L;
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private final OsdExcelImporter excelImporter;
     private final OsdPayloadSupport payloadSupport;
@@ -389,29 +393,8 @@ public class DeviceTelemetryService extends ServiceImpl<DeviceTelemetryMapper, D
                 mqttProperties.getTopic(),
                 mqttProperties.getQos());
         try {
-            MqttOsdSubscriberSession session = mqttOsdSubscriber.subscribe(mqttProperties, record -> {
-                record.setTaskId(payloadTaskId);
-                log.info("MQTT_TRACE [MESSAGE_ARRIVED] taskId={}, publishTime={}, latitude={}, longitude={}",
-                        sessionKey, record.getPublishTime(), record.getLatitude(), record.getLongitude());
-                log.info("{} taskId={}, payloadPreview={}",
-                        OsdReplayLogSupport.marker("MQTT_MESSAGE_RECEIVED"),
-                        sessionKey,
-                        OsdReplayLogSupport.payloadPreview(record.getRawJson(), 200));
-                recordRunLog(sessionKey, "MQTT_OSD_RECEIVED", "RUNNING", "mqtt osd message received", null, 1);
-                log.info("MQTT_TRACE [MESSAGE_MAPPED] taskId={}, attitudeHead={}, elevation={}, height={}",
-                        sessionKey, record.getAttitudeHead(), record.getElevation(), record.getHeight());
-                String payload = payloadSupport.toPayloadJson(record);
-                log.info("OSD_TRACE [MQTT_BROADCASTING] taskId={}, activeSessions={}",
-                        sessionKey, osdBroadcastWebSocketHandler.activeSessionCount());
-                osdBroadcastWebSocketHandler.broadcast(payload);
-                log.info("OSD_TRACE [WS_BROADCAST_DISPATCHED] taskId={}, payloadPreview={}",
-                        sessionKey, OsdReplayLogSupport.payloadPreview(payload, 200));
-                log.info("{} taskId={}, activeSessions={}, payloadPreview={}",
-                        OsdReplayLogSupport.marker("MQTT_BROADCASTING"),
-                        sessionKey,
-                        osdBroadcastWebSocketHandler.activeSessionCount(),
-                        OsdReplayLogSupport.payloadPreview(payload, 200));
-                recordRunLog(sessionKey, "MQTT_OSD_BROADCAST", "RUNNING", "mqtt osd message broadcasted", null, 1);
+            MqttOsdSubscriberSession session = mqttOsdSubscriber.subscribe(mqttProperties, (record, startedAtNanos) -> {
+                handleRealtimeMqttRecord(sessionKey, payloadTaskId, record, startedAtNanos);
             });
             mqttReplaySessions.put(sessionKey, session);
             log.info("MQTT_TRACE [SUBSCRIBED] taskId={}, topic={}", sessionKey, mqttProperties.getTopic());
@@ -437,6 +420,27 @@ public class DeviceTelemetryService extends ServiceImpl<DeviceTelemetryMapper, D
         mqttProperties.setFrameHfovDeg(properties.getOsd().getFrameHfovDeg());
         mqttProperties.setFrameVfovDeg(properties.getOsd().getFrameVfovDeg());
         return mqttProperties;
+    }
+
+    private void handleRealtimeMqttRecord(Long sessionKey,
+                                          Long payloadTaskId,
+                                          DeviceTelemetryRecord record,
+                                          long startedAtNanos) {
+        record.setTaskId(payloadTaskId);
+        Long mqttTimestamp = extractMqttTimestamp(record.getRawJson());
+        recordRunLog(sessionKey, "MQTT_OSD_RECEIVED", "RUNNING", "mqtt osd message received", null, 1);
+        String payload = payloadSupport.toPayloadJson(record);
+        osdBroadcastWebSocketHandler.broadcast(payload);
+        recordRunLog(sessionKey, "MQTT_OSD_BROADCAST", "RUNNING", "mqtt osd message broadcasted", null, 1);
+
+        long durationMillis = (System.nanoTime() - startedAtNanos) / 1_000_000L;
+        if (durationMillis > MQTT_WS_WARN_THRESHOLD_MILLIS) {
+            log.warn("MQTT_TRACE [MQTT_TO_WS_COST] taskId={}, timestamp={}, publishTime={}, durationMillis={}, thresholdMillis={}",
+                    sessionKey, mqttTimestamp, record.getPublishTime(), durationMillis, MQTT_WS_WARN_THRESHOLD_MILLIS);
+            return;
+        }
+        log.info("MQTT_TRACE [MQTT_TO_WS_COST] taskId={}, timestamp={}, publishTime={}, durationMillis={}, thresholdMillis={}",
+                sessionKey, mqttTimestamp, record.getPublishTime(), durationMillis, MQTT_WS_WARN_THRESHOLD_MILLIS);
     }
 
     void sleep(long millis) {
@@ -483,5 +487,18 @@ public class DeviceTelemetryService extends ServiceImpl<DeviceTelemetryMapper, D
             return;
         }
         runLogService.record(taskId, stage, status, message, detail, count);
+    }
+
+    private Long extractMqttTimestamp(String rawJson) {
+        if (rawJson == null || rawJson.trim().isEmpty()) {
+            return null;
+        }
+        try {
+            JsonNode root = OBJECT_MAPPER.readTree(rawJson);
+            return root.hasNonNull("timestamp") ? root.get("timestamp").asLong() : null;
+        } catch (Exception e) {
+            log.debug("MQTT_TRACE [TIMESTAMP_PARSE_SKIPPED] reason={}", e.getMessage());
+            return null;
+        }
     }
 }

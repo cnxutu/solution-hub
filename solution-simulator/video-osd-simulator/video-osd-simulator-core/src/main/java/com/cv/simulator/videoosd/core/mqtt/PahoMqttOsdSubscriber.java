@@ -11,8 +11,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.charset.StandardCharsets;
-import java.util.function.Consumer;
-
 public class PahoMqttOsdSubscriber implements MqttOsdSubscriber {
 
     private static final String MQTT_TRACE_PREFIX = "MQTT_TRACE";
@@ -24,7 +22,7 @@ public class PahoMqttOsdSubscriber implements MqttOsdSubscriber {
     }
 
     @Override
-    public MqttOsdSubscriberSession subscribe(MqttOsdProperties properties, Consumer<DeviceTelemetryRecord> consumer) {
+    public MqttOsdSubscriberSession subscribe(MqttOsdProperties properties, MqttOsdMessageHandler handler) {
         validate(properties);
         try {
             String clientId = hasText(properties.getClientId()) ? properties.getClientId() : MqttClient.generateClientId();
@@ -47,18 +45,14 @@ public class PahoMqttOsdSubscriber implements MqttOsdSubscriber {
 
                 @Override
                 public void messageArrived(String topic, MqttMessage message) {
+                    long startedAtNanos = System.nanoTime();
                     String payload = new String(message.getPayload(), StandardCharsets.UTF_8);
-                    log.info("{} [MESSAGE_ARRIVED] topic={}, payloadSize={}, payloadPreview={}",
-                            MQTT_TRACE_PREFIX, topic, payload.length(), payloadPreview(payload, 300));
                     try {
                         DeviceTelemetryRecord record = recordMapper.map(
                                 payload,
                                 properties.getFrameHfovDeg(),
                                 properties.getFrameVfovDeg());
-                        log.info("{} [MESSAGE_MAPPED] topic={}, publishTime={}, latitude={}, longitude={}, height={}",
-                                MQTT_TRACE_PREFIX, topic, record.getPublishTime(), record.getLatitude(),
-                                record.getLongitude(), record.getHeight());
-                        consumer.accept(record);
+                        handler.handle(record, startedAtNanos);
                     } catch (RuntimeException e) {
                         log.error("{} [MESSAGE_DROPPED] topic={}, reason={}, payloadPreview={}",
                                 MQTT_TRACE_PREFIX, topic, e.getMessage(), payloadPreview(payload, 300), e);
