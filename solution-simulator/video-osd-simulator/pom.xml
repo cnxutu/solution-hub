@@ -15,6 +15,7 @@
     <modules>
         <module>video-osd-simulator-core</module>
         <module>video-osd-simulator-sample</module>
+        <module>video-osd-simulator-v1</module>
     </modules>
 
     <properties>

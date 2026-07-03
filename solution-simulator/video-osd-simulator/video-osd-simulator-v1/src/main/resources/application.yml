@@ -1,0 +1,23 @@
+spring:
+  application:
+    name: video-osd-simulator-v1
+
+server:
+  port: 18083
+
+simulator:
+  osd:
+    enabled: true
+    websocket-path: /ws/osd
+    frame-hfov-deg: 60.0
+    frame-vfov-deg: 40.0
+    mqtt:
+      broker-url: tcp://127.0.0.1:1883
+      client-id: video-osd-simulator-v1
+      topic: thing/product/8UUXN4E00A05F5/drc/up
+      username:
+      password:
+      qos: 0
+      auto-reconnect: true
+      clean-session: true
+      direct-consume-enabled: true
