@@ -35,5 +35,7 @@ class VideoOsdSimulatorV1ApplicationTest {
         assertEquals("test/topic", properties.getMqtt().getTopic());
         assertEquals("/ws/osd", properties.getWebsocketPath());
         assertEquals(5000L, properties.getWsDropLogIntervalMillis());
+        assertEquals(true, properties.getWsCrypto().isEnabled());
+        assertEquals("aes-gcm", properties.getWsCrypto().getMode());
     }
 }

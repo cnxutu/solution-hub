@@ -12,6 +12,7 @@ public class SimulatorOsdProperties {
     private int wsSenderThreads = 4;
     private long wsDropLogIntervalMillis = 5000L;
     private long wsSendSlowThresholdMillis = 1000L;
+    private final WsCrypto wsCrypto = new WsCrypto();
     private final Mqtt mqtt = new Mqtt();
 
     public boolean isEnabled() {
@@ -70,8 +71,51 @@ public class SimulatorOsdProperties {
         this.wsSendSlowThresholdMillis = wsSendSlowThresholdMillis;
     }
 
+    public WsCrypto getWsCrypto() {
+        return wsCrypto;
+    }
+
     public Mqtt getMqtt() {
         return mqtt;
+    }
+
+    public static class WsCrypto {
+        private boolean enabled = false;
+        private String mode = "plain";
+        private String keyBase64;
+        private String keyId;
+
+        public boolean isEnabled() {
+            return enabled;
+        }
+
+        public void setEnabled(boolean enabled) {
+            this.enabled = enabled;
+        }
+
+        public String getMode() {
+            return mode;
+        }
+
+        public void setMode(String mode) {
+            this.mode = mode;
+        }
+
+        public String getKeyBase64() {
+            return keyBase64;
+        }
+
+        public void setKeyBase64(String keyBase64) {
+            this.keyBase64 = keyBase64;
+        }
+
+        public String getKeyId() {
+            return keyId;
+        }
+
+        public void setKeyId(String keyId) {
+            this.keyId = keyId;
+        }
     }
 
     public static class Mqtt {

@@ -5,6 +5,7 @@ import com.cv.simulator.videoosd.v1.model.MappedOsdMessage;
 import com.cv.simulator.videoosd.v1.mqtt.MqttOsdRecordMapper;
 import com.cv.simulator.videoosd.v1.osd.OsdPayloadSupport;
 import com.cv.simulator.videoosd.v1.websocket.OsdBroadcastWebSocketHandler;
+import com.cv.simulator.videoosd.v1.websocket.WsPayloadEncoder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -21,16 +22,19 @@ public class MqttOsdRelayService {
     private final SimulatorOsdProperties properties;
     private final MqttOsdRecordMapper mqttOsdRecordMapper;
     private final OsdPayloadSupport payloadSupport;
+    private final WsPayloadEncoder wsPayloadEncoder;
     private final OsdBroadcastWebSocketHandler osdBroadcastWebSocketHandler;
     private final MqttCostSummaryTracker mqttCostSummaryTracker;
 
     public MqttOsdRelayService(SimulatorOsdProperties properties,
                                MqttOsdRecordMapper mqttOsdRecordMapper,
                                OsdPayloadSupport payloadSupport,
+                               WsPayloadEncoder wsPayloadEncoder,
                                OsdBroadcastWebSocketHandler osdBroadcastWebSocketHandler) {
         this.properties = properties;
         this.mqttOsdRecordMapper = mqttOsdRecordMapper;
         this.payloadSupport = payloadSupport;
+        this.wsPayloadEncoder = wsPayloadEncoder;
         this.osdBroadcastWebSocketHandler = osdBroadcastWebSocketHandler;
         this.mqttCostSummaryTracker = new MqttCostSummaryTracker(
                 MQTT_WS_COST_SUMMARY_WINDOW_MILLIS,
@@ -44,9 +48,12 @@ public class MqttOsdRelayService {
                     payload,
                     properties.getFrameHfovDeg(),
                     properties.getFrameVfovDeg());
-            String payloadJson = payloadSupport.toPayloadJson(mappedMessage.getPayload());
+            String payloadJson = wsPayloadEncoder.encode(payloadSupport.toPayloadJson(mappedMessage.getPayload()));
             osdBroadcastWebSocketHandler.broadcast(payloadJson);
             logCost(mappedMessage, startedAtNanos);
+        } catch (IllegalArgumentException e) {
+            log.warn("MQTT_TRACE [{}] topic={}, reason={}, payloadPreview={}",
+                    droppedEventName(e), topic, e.getMessage(), payloadPreview(payload, 300));
         } catch (RuntimeException e) {
             log.error("MQTT_TRACE [MESSAGE_DROPPED] topic={}, reason={}, payloadPreview={}",
                     topic, e.getMessage(), payloadPreview(payload, 300), e);
@@ -79,5 +86,19 @@ public class MqttOsdRelayService {
             return payload;
         }
         return payload.substring(0, maxLength) + "...(" + payload.length() + " chars)";
+    }
+
+    private String droppedEventName(IllegalArgumentException e) {
+        String message = e.getMessage();
+        if (message == null) {
+            return "MESSAGE_DROPPED";
+        }
+        if (message.contains("valid json object")) {
+            return "MESSAGE_SKIPPED_BAD_JSON";
+        }
+        if (message.contains("non-null latitude and longitude")) {
+            return "MESSAGE_SKIPPED_HEARTBEAT";
+        }
+        return "MESSAGE_DROPPED";
     }
 }

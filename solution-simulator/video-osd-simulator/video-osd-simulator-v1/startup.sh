@@ -33,6 +33,10 @@ MQTT_DIRECT_CONSUME_ENABLED=${MQTT_DIRECT_CONSUME_ENABLED:-true}
 WS_SENDER_THREADS=${WS_SENDER_THREADS:-4}
 WS_DROP_LOG_INTERVAL_MILLIS=${WS_DROP_LOG_INTERVAL_MILLIS:-5000}
 WS_SEND_SLOW_THRESHOLD_MILLIS=${WS_SEND_SLOW_THRESHOLD_MILLIS:-1000}
+WS_CRYPTO_ENABLED=${WS_CRYPTO_ENABLED:-true}
+WS_CRYPTO_MODE=${WS_CRYPTO_MODE:-aes-gcm}
+WS_CRYPTO_KEY_BASE64=${WS_CRYPTO_KEY_BASE64:-}
+WS_CRYPTO_KEY_ID=${WS_CRYPTO_KEY_ID:-}
 MQTT_USERNAME=${MQTT_USERNAME:-}
 MQTT_PASSWORD=${MQTT_PASSWORD:-}
 
@@ -64,6 +68,8 @@ JAVA_ARGS="$JAVA_ARGS --simulator.osd.websocket-path=/ws/osd"
 JAVA_ARGS="$JAVA_ARGS --simulator.osd.ws-sender-threads=$WS_SENDER_THREADS"
 JAVA_ARGS="$JAVA_ARGS --simulator.osd.ws-drop-log-interval-millis=$WS_DROP_LOG_INTERVAL_MILLIS"
 JAVA_ARGS="$JAVA_ARGS --simulator.osd.ws-send-slow-threshold-millis=$WS_SEND_SLOW_THRESHOLD_MILLIS"
+JAVA_ARGS="$JAVA_ARGS --simulator.osd.ws-crypto.enabled=$WS_CRYPTO_ENABLED"
+JAVA_ARGS="$JAVA_ARGS --simulator.osd.ws-crypto.mode=$WS_CRYPTO_MODE"
 JAVA_ARGS="$JAVA_ARGS --simulator.osd.mqtt.broker-url=$MQTT_BROKER_URL"
 JAVA_ARGS="$JAVA_ARGS --simulator.osd.mqtt.client-id=$MQTT_CLIENT_ID"
 JAVA_ARGS="$JAVA_ARGS --simulator.osd.mqtt.topic=$MQTT_TOPIC"
@@ -78,6 +84,14 @@ fi
 
 if [ -n "$MQTT_PASSWORD" ]; then
   JAVA_ARGS="$JAVA_ARGS --simulator.osd.mqtt.password=$MQTT_PASSWORD"
+fi
+
+if [ -n "$WS_CRYPTO_KEY_BASE64" ]; then
+  JAVA_ARGS="$JAVA_ARGS --simulator.osd.ws-crypto.key-base64=$WS_CRYPTO_KEY_BASE64"
+fi
+
+if [ -n "$WS_CRYPTO_KEY_ID" ]; then
+  JAVA_ARGS="$JAVA_ARGS --simulator.osd.ws-crypto.key-id=$WS_CRYPTO_KEY_ID"
 fi
 
 echo "[INFO] Starting video-osd-simulator-v1"

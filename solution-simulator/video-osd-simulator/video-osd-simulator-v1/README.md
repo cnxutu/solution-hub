@@ -33,6 +33,26 @@
 mvn clean package
 ```
 
+混淆构建命令：
+
+```bash
+mvn clean package -Dobfuscation.enabled=true
+```
+
+windows 下环境命令推荐：
+```bash  
+mvn clean package '-Dobfuscation.enabled=true'
+```
+
+
+说明：
+
+- `application.yml` 不控制 jar 是否混淆。
+- 混淆属于构建期行为，只能通过 Maven 构建开关控制。
+- 当前采用保守混淆策略，目标是“可运行优先”，不是极致防逆向。
+- 混淆只影响打包产物，不影响启动方式、MQTT 参数覆盖方式和 `/ws/osd` 路径。
+- 如果在 PowerShell 中执行，建议写成 `mvn clean package '-Dobfuscation.enabled=true'`，避免 `-D` 参数被错误拆分。
+
 ## 默认配置
 
 默认配置位于 [application.yml](/D:/workspace/github/solution-hub/solution-simulator/video-osd-simulator/video-osd-simulator-v1/src/main/resources/application.yml:1)。
@@ -49,6 +69,11 @@ simulator:
     ws-sender-threads: 4
     ws-drop-log-interval-millis: 5000
     ws-send-slow-threshold-millis: 1000
+    ws-crypto:
+      enabled: false
+      mode: plain
+      key-base64:
+      key-id:
     mqtt:
       broker-url: tcp://127.0.0.1:1883
       client-id: video-osd-simulator-v1
@@ -123,6 +148,10 @@ export SERVER_PORT=18083
 export WS_SENDER_THREADS=4
 export WS_DROP_LOG_INTERVAL_MILLIS=5000
 export WS_SEND_SLOW_THRESHOLD_MILLIS=1000
+export WS_CRYPTO_ENABLED=false
+export WS_CRYPTO_MODE=plain
+export WS_CRYPTO_KEY_BASE64=
+export WS_CRYPTO_KEY_ID=
 sh startup.sh
 ```
 
@@ -178,6 +207,10 @@ ls -lh /home/data/test/260706/logs/20260706
 - `WS_SENDER_THREADS`
 - `WS_DROP_LOG_INTERVAL_MILLIS`
 - `WS_SEND_SLOW_THRESHOLD_MILLIS`
+- `WS_CRYPTO_ENABLED`
+- `WS_CRYPTO_MODE`
+- `WS_CRYPTO_KEY_BASE64`
+- `WS_CRYPTO_KEY_ID`
 
 ## 对外接口
 
@@ -214,6 +247,98 @@ socket.onmessage = (event) => {
 - 某个 WebSocket 客户端发送过慢时，旧待发送消息会被新消息覆盖。
 - 服务端会输出 `WS_DROP_SUMMARY` 聚合日志，用来感知慢连接导致的丢弃。
 - 服务端会每 `5s` 输出一次 `MQTT_TRACE [MQTT_TO_WS_COST_SUMMARY]`，用于观察这段时间内 MQTT 到 WS 的平均耗时与最大耗时。
+- `simulator.osd.ws-crypto.enabled=false` 时，WS 输出保持当前明文 JSON。
+- `simulator.osd.ws-crypto.enabled=true` 且 `mode=aes-gcm` 时，WS 输出改为密文 envelope，前端需先解密再读取原始 OSD JSON。
+
+## WS 加密配置
+
+当前只支持两种模式：
+
+- `plain`
+- `aes-gcm`
+
+推荐配置示例：
+
+```yaml
+simulator:
+  osd:
+    ws-crypto:
+      enabled: true
+      mode: aes-gcm
+      key-base64: MDEyMzQ1Njc4OWFiY2RlZg==
+      key-id: relay-key-01
+```
+
+说明：
+
+- 推荐使用 `AES-GCM`，不推荐 `XOR + Base64`。
+- `AES-GCM` 同时提供机密性和完整性校验，更适合正式交付。
+- 若 `enabled=true` 且 `key-base64` 非法、或解码后不是 `16/24/32` 字节，应用会在启动时直接失败。
+- `key-id` 会透传到 WS 密文 envelope，方便前端按密钥版本解密。
+
+开启 AES-GCM 后，WS 推送示例结构如下：
+
+```json
+{
+  "encrypted": true,
+  "alg": "AES-GCM",
+  "kid": "relay-key-01",
+  "iv": "H3rGmYxvT3M5YxXv",
+  "ciphertext": "4m4p3g2sjx0oK1x4m+4r+6P8m6K3J2gJ0D3v3r4i7T8..."
+}
+```
+
+前后端对接时，后端需要提供给前端的内容：
+
+1. WebSocket 地址，例如 `ws://<host>:<port>/ws/osd`
+2. 是否启用加密，即 `ws-crypto.enabled`
+3. 加密模式，当前固定为 `AES-GCM`
+4. `kid` 对应的密钥明文，或双方约定好的密钥分发表
+5. 密钥编码方式，当前为 `Base64`
+6. 解密后得到的原始 OSD JSON 结构说明
+
+说明：
+
+- `kid` 只是密钥标识，不是密钥本身。
+- `iv` 会随每条消息一起下发，它不是保密字段，可以公开传输。
+- 真正需要保密的是 `key`。
+- 当前实现里 `iv` 为服务端每条消息随机生成，前端无需预置固定 `iv`。
+
+前端处理流程：
+
+1. 读取 `kid` 定位密钥
+2. 对 `kid` 对应的 `key-base64` 做 Base64 解码，得到 AES 原始密钥字节
+3. 从消息中读取 `iv` 和 `ciphertext`，两者也先做 Base64 解码
+4. 使用 `key + iv + ciphertext` 做 AES-GCM 解密
+5. 解密后得到原始 OSD JSON
+
+前端要点：
+
+- 不能只拿 `iv + ciphertext` 解密，必须同时持有正确的 `key`。
+- 即使别人看到了 `kid`、`iv`、`ciphertext`，只要没有 `key`，也无法还原明文。
+- 若后续切换密钥版本，只需变更 `kid -> key` 的映射关系即可。
+
+推荐对接流程：
+
+1. 后端先提供一组联调密钥，例如：
+   - `kid=relay-key-01`
+   - `key-base64=MDEyMzQ1Njc4OWFiY2RlZg==`
+2. 前端按 `kid` 建立本地密钥映射表
+3. 联调时先确认收到的是 AES-GCM envelope，而不是明文 JSON
+4. 前端解密成功后，再按“WebSocket 输出消息”章节解析原始 OSD 字段
+5. 若正式环境需要换钥，只替换服务端配置和前端密钥映射，不改 WS 地址和业务字段结构
+
+可给前端的示例密钥说明：
+
+```text
+kid: relay-key-01
+key-base64: MDEyMzQ1Njc4OWFiY2RlZg==
+algorithm: AES-GCM
+payload-encoding: Base64(iv) + Base64(ciphertext)
+plaintext: WebSocket 输出消息章节中的原始 OSD JSON
+```
+
+明文模式下，前端处理方式保持不变。
 
 ## MQTT 输入消息
 

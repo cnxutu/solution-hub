@@ -4,6 +4,7 @@ import com.cv.simulator.videoosd.v1.config.SimulatorOsdProperties;
 import com.cv.simulator.videoosd.v1.mqtt.MqttOsdRecordMapper;
 import com.cv.simulator.videoosd.v1.osd.OsdFrameGeometryCalculator;
 import com.cv.simulator.videoosd.v1.osd.OsdPayloadSupport;
+import com.cv.simulator.videoosd.v1.websocket.WsPayloadEncoder;
 import com.cv.simulator.videoosd.v1.websocket.OsdBroadcastWebSocketHandler;
 import org.junit.jupiter.api.Test;
 
@@ -23,6 +24,7 @@ class MqttOsdRelayServiceTest {
                 properties,
                 new MqttOsdRecordMapper(new OsdFrameGeometryCalculator()),
                 new OsdPayloadSupport(),
+                new WsPayloadEncoder(properties.getWsCrypto()),
                 new CapturingBroadcastHandler(payloads)
         );
 
@@ -44,6 +46,7 @@ class MqttOsdRelayServiceTest {
                 new SimulatorOsdProperties(),
                 new MqttOsdRecordMapper(new OsdFrameGeometryCalculator()),
                 new OsdPayloadSupport(),
+                new WsPayloadEncoder(new SimulatorOsdProperties().getWsCrypto()),
                 new CapturingBroadcastHandler(payloads)
         );
 
@@ -59,6 +62,7 @@ class MqttOsdRelayServiceTest {
                 new SimulatorOsdProperties(),
                 new MqttOsdRecordMapper(new OsdFrameGeometryCalculator()),
                 new OsdPayloadSupport(),
+                new WsPayloadEncoder(new SimulatorOsdProperties().getWsCrypto()),
                 new CapturingBroadcastHandler(payloads)
         );
 
@@ -66,6 +70,31 @@ class MqttOsdRelayServiceTest {
                 "{\"data\":{\"height\":100.24636383056641,\"speed_x\":0,\"speed_y\":0,\"speed_z\":1},\"timestamp\":1782972590947}");
 
         assertTrue(payloads.isEmpty());
+    }
+
+    @Test
+    void encryptsWsPayloadWhenWsCryptoEnabled() {
+        SimulatorOsdProperties properties = new SimulatorOsdProperties();
+        properties.getWsCrypto().setEnabled(true);
+        properties.getWsCrypto().setMode("aes-gcm");
+        properties.getWsCrypto().setKeyId("relay-key");
+        properties.getWsCrypto().setKeyBase64("MDEyMzQ1Njc4OWFiY2RlZg==");
+        List<String> payloads = new ArrayList<String>();
+        MqttOsdRelayService service = new MqttOsdRelayService(
+                properties,
+                new MqttOsdRecordMapper(new OsdFrameGeometryCalculator()),
+                new OsdPayloadSupport(),
+                new WsPayloadEncoder(properties.getWsCrypto()),
+                new CapturingBroadcastHandler(payloads)
+        );
+
+        service.handleInboundMessage("thing/product/8UUXN4E00A05F5/drc/up", sampleMqttPayload());
+
+        assertEquals(1, payloads.size());
+        assertTrue(payloads.get(0).contains("\"encrypted\":true"));
+        assertTrue(payloads.get(0).contains("\"alg\":\"AES-GCM\""));
+        assertTrue(payloads.get(0).contains("\"kid\":\"relay-key\""));
+        assertTrue(!payloads.get(0).contains("\"attitude_head\":87.0"));
     }
 
     private static class CapturingBroadcastHandler extends OsdBroadcastWebSocketHandler {

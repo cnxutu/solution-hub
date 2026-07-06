@@ -4,6 +4,7 @@ import com.cv.simulator.videoosd.v1.service.MqttOsdRelayService;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.integration.annotation.ServiceActivator;
 import org.springframework.integration.channel.DirectChannel;
 import org.springframework.integration.core.MessageProducer;
@@ -43,7 +44,7 @@ public class MqttIntegrationConfig {
     @Bean
     public MessageProducer mqttInboundAdapter(SimulatorOsdProperties properties,
                                               MqttPahoClientFactory mqttPahoClientFactory,
-                                              MessageChannel mqttInputChannel) {
+                                              @Qualifier("mqttInputChannel") MessageChannel mqttInputChannel) {
         MqttPahoMessageDrivenChannelAdapter adapter = new MqttPahoMessageDrivenChannelAdapter(
                 properties.getMqtt().getClientId(),
                 mqttPahoClientFactory,

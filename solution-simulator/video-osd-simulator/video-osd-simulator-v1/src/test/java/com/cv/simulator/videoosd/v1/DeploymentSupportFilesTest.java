@@ -28,6 +28,10 @@ class DeploymentSupportFilesTest {
         assertTrue(content.contains("Show process:"));
         assertTrue(content.contains("Stop process:"));
         assertTrue(content.contains("\\$(cat \\\"$PID_FILE\\\")"));
+        assertTrue(content.contains("WS_CRYPTO_ENABLED"));
+        assertTrue(content.contains("WS_CRYPTO_MODE"));
+        assertTrue(content.contains("WS_CRYPTO_KEY_BASE64"));
+        assertTrue(content.contains("WS_CRYPTO_KEY_ID"));
         assertTrue(content.contains("-Dapp.log.dir=$LOG_DIR"));
         assertTrue(content.contains("-Dapp.name=$APP_NAME"));
     }
@@ -42,6 +46,15 @@ class DeploymentSupportFilesTest {
         assertTrue(content.contains("%i.log.gz"));
         assertTrue(content.contains("200MB"));
         assertTrue(content.contains("SizeAndTimeBasedRollingPolicy"));
+    }
+
+    @Test
+    void pomSupportsOptionalObfuscationBuildProfile() throws IOException {
+        String content = new String(Files.readAllBytes(Paths.get("pom.xml")), StandardCharsets.UTF_8);
+
+        assertTrue(content.contains("obfuscation.enabled"));
+        assertTrue(content.contains("proguard-maven-plugin"));
+        assertTrue(content.contains("proguard-rules.pro"));
     }
 
     private static String readClasspathResource(String path) throws IOException {

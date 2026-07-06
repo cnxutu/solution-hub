@@ -26,6 +26,8 @@ if "%MQTT_DIRECT_CONSUME_ENABLED%"=="" set MQTT_DIRECT_CONSUME_ENABLED=true
 if "%WS_SENDER_THREADS%"=="" set WS_SENDER_THREADS=4
 if "%WS_DROP_LOG_INTERVAL_MILLIS%"=="" set WS_DROP_LOG_INTERVAL_MILLIS=5000
 if "%WS_SEND_SLOW_THRESHOLD_MILLIS%"=="" set WS_SEND_SLOW_THRESHOLD_MILLIS=1000
+if "%WS_CRYPTO_ENABLED%"=="" set WS_CRYPTO_ENABLED=true
+if "%WS_CRYPTO_MODE%"=="" set WS_CRYPTO_MODE=aes-gcm
 
 set JAVA_OPTS=%JAVA_OPTS% --server.port=%SERVER_PORT%
 set JAVA_OPTS=%JAVA_OPTS% --simulator.osd.enabled=true
@@ -33,6 +35,8 @@ set JAVA_OPTS=%JAVA_OPTS% --simulator.osd.websocket-path=/ws/osd
 set JAVA_OPTS=%JAVA_OPTS% --simulator.osd.ws-sender-threads=%WS_SENDER_THREADS%
 set JAVA_OPTS=%JAVA_OPTS% --simulator.osd.ws-drop-log-interval-millis=%WS_DROP_LOG_INTERVAL_MILLIS%
 set JAVA_OPTS=%JAVA_OPTS% --simulator.osd.ws-send-slow-threshold-millis=%WS_SEND_SLOW_THRESHOLD_MILLIS%
+set JAVA_OPTS=%JAVA_OPTS% --simulator.osd.ws-crypto.enabled=%WS_CRYPTO_ENABLED%
+set JAVA_OPTS=%JAVA_OPTS% --simulator.osd.ws-crypto.mode=%WS_CRYPTO_MODE%
 set JAVA_OPTS=%JAVA_OPTS% --simulator.osd.mqtt.broker-url=%MQTT_BROKER_URL%
 set JAVA_OPTS=%JAVA_OPTS% --simulator.osd.mqtt.client-id=%MQTT_CLIENT_ID%
 set JAVA_OPTS=%JAVA_OPTS% --simulator.osd.mqtt.topic=%MQTT_TOPIC%
@@ -43,6 +47,8 @@ set JAVA_OPTS=%JAVA_OPTS% --simulator.osd.mqtt.direct-consume-enabled=%MQTT_DIRE
 
 if not "%MQTT_USERNAME%"=="" set JAVA_OPTS=%JAVA_OPTS% --simulator.osd.mqtt.username=%MQTT_USERNAME%
 if not "%MQTT_PASSWORD%"=="" set JAVA_OPTS=%JAVA_OPTS% --simulator.osd.mqtt.password=%MQTT_PASSWORD%
+if not "%WS_CRYPTO_KEY_BASE64%"=="" set JAVA_OPTS=%JAVA_OPTS% --simulator.osd.ws-crypto.key-base64=%WS_CRYPTO_KEY_BASE64%
+if not "%WS_CRYPTO_KEY_ID%"=="" set JAVA_OPTS=%JAVA_OPTS% --simulator.osd.ws-crypto.key-id=%WS_CRYPTO_KEY_ID%
 
 echo [INFO] Starting video-osd-simulator-v1
 echo [INFO] Broker=%MQTT_BROKER_URL%
