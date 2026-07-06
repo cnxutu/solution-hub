@@ -2,7 +2,12 @@
 set -eu
 
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
+APP_NAME=video-osd-simulator-v1
 APP_JAR="$SCRIPT_DIR/video-osd-simulator-v1-1.0.0.jar"
+LOG_DIR="$SCRIPT_DIR/logs"
+LOG_FILE="$LOG_DIR/$APP_NAME.log"
+ARCHIVE_DIR_PATTERN="$LOG_DIR/$(date +%Y%m%d)"
+PID_FILE="$SCRIPT_DIR/$APP_NAME.pid"
 
 if [ ! -f "$APP_JAR" ]; then
   APP_JAR="$SCRIPT_DIR/target/video-osd-simulator-v1-1.0.0.jar"
@@ -31,6 +36,28 @@ WS_SEND_SLOW_THRESHOLD_MILLIS=${WS_SEND_SLOW_THRESHOLD_MILLIS:-1000}
 MQTT_USERNAME=${MQTT_USERNAME:-}
 MQTT_PASSWORD=${MQTT_PASSWORD:-}
 
+mkdir -p "$LOG_DIR"
+
+is_running() {
+  pid="$1"
+  if [ -z "$pid" ]; then
+    return 1
+  fi
+  kill -0 "$pid" >/dev/null 2>&1
+}
+
+if [ -f "$PID_FILE" ]; then
+  EXISTING_PID=$(cat "$PID_FILE" 2>/dev/null || true)
+  if is_running "$EXISTING_PID"; then
+    echo "[ERROR] $APP_NAME is already running. pid=$EXISTING_PID"
+    echo "[INFO] PID file: $PID_FILE"
+    echo "[INFO] Log file: $LOG_FILE"
+    exit 1
+  fi
+  echo "[WARN] Removing stale PID file: $PID_FILE"
+  rm -f "$PID_FILE"
+fi
+
 JAVA_ARGS="--server.port=$SERVER_PORT"
 JAVA_ARGS="$JAVA_ARGS --simulator.osd.enabled=true"
 JAVA_ARGS="$JAVA_ARGS --simulator.osd.websocket-path=/ws/osd"
@@ -58,5 +85,25 @@ echo "[INFO] Broker=$MQTT_BROKER_URL"
 echo "[INFO] Topic=$MQTT_TOPIC"
 echo "[INFO] Port=$SERVER_PORT"
 echo "[INFO] WsSenderThreads=$WS_SENDER_THREADS"
+echo "[INFO] LogDir=$LOG_DIR"
+echo "[INFO] LogFile=$LOG_FILE"
 
-exec "$JAVA_CMD" -jar "$APP_JAR" $JAVA_ARGS
+nohup "$JAVA_CMD" ${JAVA_OPTS:-} -Dapp.name=$APP_NAME -Dapp.log.dir=$LOG_DIR -jar "$APP_JAR" $JAVA_ARGS >/dev/null 2>&1 &
+APP_PID=$!
+echo "$APP_PID" > "$PID_FILE"
+
+sleep 1
+if ! is_running "$APP_PID"; then
+  echo "[ERROR] Failed to start $APP_NAME. Check log: $LOG_FILE"
+  rm -f "$PID_FILE"
+  exit 1
+fi
+
+echo "[INFO] $APP_NAME started in background."
+echo "[INFO] PID=$APP_PID"
+echo "[INFO] PID file: $PID_FILE"
+echo "[INFO] Active log: $LOG_FILE"
+echo "[INFO] Archive logs: $ARCHIVE_DIR_PATTERN"
+echo "[INFO] Tail logs: tail -f \"$LOG_FILE\""
+echo "[INFO] Show process: ps -fp \$(cat \"$PID_FILE\")"
+echo "[INFO] Stop process: kill \$(cat \"$PID_FILE\")"

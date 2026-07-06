@@ -93,6 +93,8 @@ startup.bat
 
 - `startup.bat` 只需要执行一次。
 - 上面两段是两种启动方式，不是“先默认启动，再自定义启动”。
+- Windows 当前仍是前台启动，主要用于本地手工调试。
+- Linux 才提供后台守护启动、PID 文件和日志归档能力。
 
 ### Linux
 
@@ -129,6 +131,11 @@ sh startup.sh
 - `startup.sh` 只需要执行一次。
 - 上面两段是两种启动方式，不是“先默认启动，再自定义启动”。
 - `startup.sh` 会优先查找同级目录下的 `video-osd-simulator-v1-1.0.0.jar`，找不到时再查找 `target/video-osd-simulator-v1-1.0.0.jar`。
+- `startup.sh` 是后台守护启动，命令返回后应用会继续运行。
+- 脚本会在当前目录自动创建 `logs/`，并生成 `video-osd-simulator-v1.pid`。
+- 当前活动日志文件固定为 `logs/video-osd-simulator-v1.log`。
+- 每天归档日志会进入 `logs/yyyyMMdd/`，同一天单文件超过 `200MB` 后按序号滚动。
+- 若 PID 文件存在且进程仍在运行，脚本会拒绝重复启动；若 PID 文件失效，则会自动清理后重启。
 
 推荐的 Linux 交付目录结构示例：
 
@@ -136,6 +143,22 @@ sh startup.sh
 /home/data/test/260706/
   startup.sh
   video-osd-simulator-v1-1.0.0.jar
+  video-osd-simulator-v1.pid
+  logs/
+    video-osd-simulator-v1.log
+    20260706/
+      video-osd-simulator-v1.0.log.gz
+      video-osd-simulator-v1.1.log.gz
+```
+
+启动成功后，脚本会直接打印常用排查命令，例如：
+
+```bash
+tail -f /home/data/test/260706/logs/video-osd-simulator-v1.log
+ps -fp $(cat /home/data/test/260706/video-osd-simulator-v1.pid)
+kill $(cat /home/data/test/260706/video-osd-simulator-v1.pid)
+ls -lh /home/data/test/260706/logs
+ls -lh /home/data/test/260706/logs/20260706
 ```
 
 ## 启动脚本支持的环境变量
