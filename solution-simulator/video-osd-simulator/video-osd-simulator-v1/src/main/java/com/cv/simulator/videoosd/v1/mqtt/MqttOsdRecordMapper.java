@@ -5,11 +5,13 @@ import com.cv.simulator.videoosd.v1.model.OsdWebSocketPayload;
 import com.cv.simulator.videoosd.v1.osd.OsdFrameGeometryCalculator;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.extern.slf4j.Slf4j;
 
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 
+@Slf4j
 public class MqttOsdRecordMapper {
 
     private final ObjectMapper objectMapper = new ObjectMapper();
@@ -25,7 +27,11 @@ public class MqttOsdRecordMapper {
             throw new IllegalArgumentException("mqtt osd payload must contain data object");
         }
         MqttOsdDataPayload data = message.getData();
+        if (data.getLatitude() == null || data.getLongitude() == null) {
+            log.error("mqtt osd payload must contain non-null latitude and longitude");
+        }
         OsdWebSocketPayload payload = new OsdWebSocketPayload();
+        payload.setTimestamp(message.getTimestamp());
         payload.setAttitudeHead(data.getAttitudeHead());
         payload.setLatitude(data.getLatitude());
         payload.setLongitude(data.getLongitude());

@@ -194,6 +194,7 @@ socket.onmessage = (event) => {
 
 当前 WebSocket 输出字段固定为：
 
+- `timestamp`
 - `attitude_head`
 - `latitude`
 - `longitude`
@@ -257,6 +258,7 @@ v1 当前只消费 MQTT 报文中的少量关键字段，推荐输入结构如�
 说明：
 
 - 除上表字段外，其他 MQTT 字段即使存在，v1 当前也不会参与输出。
+- 若 `data.latitude` 或 `data.longitude` 为空，则该条消息会按心跳/无效 OSD 直接过滤，不进入 WS 推送。
 - `frame_center` / `corners` 的计算依赖 `latitude + longitude + height`，并结合 `attitude_head`、`frame-hfov-deg`、`frame-vfov-deg`。
 
 ## WebSocket 输出消息
@@ -265,6 +267,7 @@ v1 当前只消费 MQTT 报文中的少量关键字段，推荐输入结构如�
 
 ```json
 {
+  "timestamp": 1782972590947,
   "latitude": 30.18566738053386,
   "longitude": 120.19797559348879,
   "height": 100.24636,
@@ -304,6 +307,7 @@ v1 当前只消费 MQTT 报文中的少量关键字段，推荐输入结构如�
 
 | 字段 | 类型 | 说明 |
 | --- | --- | --- |
+| `timestamp` | `long` | MQTT 原始消息时间戳，毫秒，服务端透传 |
 | `attitude_head` | `number` | 无人机机头朝向 |
 | `latitude` | `number` | 无人机当前纬度 |
 | `longitude` | `number` | 无人机当前经度 |

@@ -29,6 +29,7 @@ class MqttOsdRelayServiceTest {
         service.handleInboundMessage("thing/product/8UUXN4E00A05F5/drc/up", sampleMqttPayload());
 
         assertEquals(1, payloads.size());
+        assertTrue(payloads.get(0).contains("\"timestamp\":1782972590947"));
         assertTrue(payloads.get(0).contains("\"attitude_head\":87.0"));
         assertTrue(payloads.get(0).contains("\"speed_x\":0.0"));
         assertTrue(payloads.get(0).contains("\"frame_center\""));
@@ -47,6 +48,22 @@ class MqttOsdRelayServiceTest {
         );
 
         service.handleInboundMessage("test/topic", "{broken");
+
+        assertTrue(payloads.isEmpty());
+    }
+
+    @Test
+    void ignoresHeartbeatPayloadWithoutLatitudeOrLongitude() {
+        List<String> payloads = new ArrayList<String>();
+        MqttOsdRelayService service = new MqttOsdRelayService(
+                new SimulatorOsdProperties(),
+                new MqttOsdRecordMapper(new OsdFrameGeometryCalculator()),
+                new OsdPayloadSupport(),
+                new CapturingBroadcastHandler(payloads)
+        );
+
+        service.handleInboundMessage("test/topic",
+                "{\"data\":{\"height\":100.24636383056641,\"speed_x\":0,\"speed_y\":0,\"speed_z\":1},\"timestamp\":1782972590947}");
 
         assertTrue(payloads.isEmpty());
     }

@@ -19,6 +19,7 @@ class MqttOsdRecordMapperTest {
 
         assertEquals(Long.valueOf(1782972590947L), mappedMessage.getMqttTimestamp());
         assertEquals("2026-07-02T14:09:50.947", mappedMessage.getPublishTime().toString());
+        assertEquals(Long.valueOf(1782972590947L), payload.getTimestamp());
         assertEquals(87.0F, payload.getAttitudeHead());
         assertEquals(-0.1D, payload.getGimbalPitch());
         assertEquals(0.0F, payload.getSpeedX());
@@ -42,12 +43,42 @@ class MqttOsdRecordMapperTest {
         assertEquals("mqtt osd payload must contain data object", exception.getMessage());
     }
 
+    @Test
+    void rejectsPayloadWhenLatitudeIsMissing() {
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> mapper.map(payloadWithoutLatitude(), 60.0, 40.0));
+
+        assertEquals("mqtt osd payload must contain non-null latitude and longitude", exception.getMessage());
+    }
+
+    @Test
+    void rejectsPayloadWhenLongitudeIsMissing() {
+        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class,
+                () -> mapper.map(payloadWithoutLongitude(), 60.0, 40.0));
+
+        assertEquals("mqtt osd payload must contain non-null latitude and longitude", exception.getMessage());
+    }
+
     private String samplePayload() {
         return "{\"data\":{\"attitude_head\":87,\"elevation\":59.7,\"gimbal_pitch\":-0.1,"
                 + "\"gimbal_roll\":1.5,\"gimbal_yaw\":87.3602828699535,\"height\":100.24636383056641,"
                 + "\"home_distance\":0.0902225822210312,\"horizontal_speed\":0,\"latitude\":30.18566738053386,"
                 + "\"longitude\":120.19797559348879,\"speed_x\":0,\"speed_y\":0,\"speed_z\":1,"
                 + "\"ultrasonic_height\":-1,\"vertical_speed\":-1,\"wind_direction\":4,\"wind_speed\":40},"
+                + "\"method\":\"osd_info_push\",\"seq\":4392,\"timestamp\":1782972590947}";
+    }
+
+    private String payloadWithoutLatitude() {
+        return "{\"data\":{\"attitude_head\":87,\"gimbal_pitch\":-0.1,"
+                + "\"gimbal_roll\":1.5,\"gimbal_yaw\":87.3602828699535,\"height\":100.24636383056641,"
+                + "\"longitude\":120.19797559348879,\"speed_x\":0,\"speed_y\":0,\"speed_z\":1},"
+                + "\"method\":\"osd_info_push\",\"seq\":4392,\"timestamp\":1782972590947}";
+    }
+
+    private String payloadWithoutLongitude() {
+        return "{\"data\":{\"attitude_head\":87,\"gimbal_pitch\":-0.1,"
+                + "\"gimbal_roll\":1.5,\"gimbal_yaw\":87.3602828699535,\"height\":100.24636383056641,"
+                + "\"latitude\":30.18566738053386,\"speed_x\":0,\"speed_y\":0,\"speed_z\":1},"
                 + "\"method\":\"osd_info_push\",\"seq\":4392,\"timestamp\":1782972590947}";
     }
 }

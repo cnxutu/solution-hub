@@ -7,6 +7,7 @@ import java.util.List;
 
 public class OsdWebSocketPayload {
 
+    private Long timestamp;
     @JsonProperty("attitude_head")
     private Float attitudeHead;
     private BigDecimal latitude;
@@ -27,6 +28,14 @@ public class OsdWebSocketPayload {
     @JsonProperty("frame_center")
     private GeoPoint frameCenter;
     private List<GeoPoint> corners;
+
+    public Long getTimestamp() {
+        return timestamp;
+    }
+
+    public void setTimestamp(Long timestamp) {
+        this.timestamp = timestamp;
+    }
 
     public Float getAttitudeHead() {
         return attitudeHead;
