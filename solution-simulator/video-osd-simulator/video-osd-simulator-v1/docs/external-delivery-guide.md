@@ -1,48 +1,48 @@
-# video-osd-simulator-v1 External Delivery Guide
+# video-osd-simulator-v1 外部交付启动说明
 
-`video-osd-simulator-v1` is delivered as an independent OSD relay module.
+`video-osd-simulator-v1` 是一个独立交付的 OSD 实时转发模块。
 
-Its runtime path is:
+模块运行链路如下：
 
-`MQTT -> OSD mapping -> WebSocket broadcast`
+`MQTT -> OSD 映射 -> WebSocket 广播`
 
-This guide is intended for external deployment and startup use. It only covers build, startup, log location, and external interface basics.
+本文档仅面向外部交付使用，主要说明构建、启动、日志位置、环境变量和对外接口，不展开内部实现细节。
 
-## Package Location
+## 模块位置
 
-Recommended module directory:
+推荐在以下目录执行构建和启动：
 
 `D:\workspace\github\solution-hub\solution-simulator\video-osd-simulator\video-osd-simulator-v1`
 
-Build output:
+打包产物位置：
 
 `target/video-osd-simulator-v1-1.0.0.jar`
 
-## Build
+## 构建
 
-Run the package command in the module directory:
-
-```bash
-mvn clean package
-```
-
-If you use PowerShell, the same command can be executed directly:
+请在当前模块目录下执行：
 
 ```bash
 mvn clean package
 ```
 
-## Linux Startup
+如果使用 PowerShell，也可直接执行同样的命令：
 
-1. Place `startup.sh` and `video-osd-simulator-v1-1.0.0.jar` in the same directory, or keep the jar under `target/`
-2. Set customer environment variables if needed
-3. Run once:
+```bash
+mvn clean package
+```
+
+## Linux 启动
+
+1. 将 `startup.sh` 与 `video-osd-simulator-v1-1.0.0.jar` 放在同一目录，或保留 jar 在 `target/` 目录下
+2. 如需覆盖客户环境参数，先设置环境变量
+3. 执行一次启动脚本：
 
 ```bash
 sh startup.sh
 ```
 
-Example:
+示例：
 
 ```bash
 export MQTT_BROKER_URL=tcp://192.168.1.112:1883
@@ -58,21 +58,21 @@ export WS_SEND_SLOW_THRESHOLD_MILLIS=1000
 sh startup.sh
 ```
 
-Notes:
+说明：
 
-- `startup.sh` runs in background
-- run it once only
-- if a valid PID already exists, the script will reject duplicate startup
+- `startup.sh` 为后台守护启动
+- 启动脚本只需执行一次
+- 若当前目录下已有有效 PID 进程，脚本会拒绝重复启动
 
-## Windows Startup
+## Windows 启动
 
-Run in the module directory:
+在当前模块目录下执行：
 
 ```bat
 startup.bat
 ```
 
-Example with environment overrides:
+如需覆盖客户环境参数，可先设置环境变量后再执行：
 
 ```bat
 set MQTT_BROKER_URL=tcp://192.168.1.112:1883
@@ -88,14 +88,14 @@ set WS_SEND_SLOW_THRESHOLD_MILLIS=1000
 startup.bat
 ```
 
-Notes:
+说明：
 
-- `startup.bat` is foreground mode
-- run it once only
+- `startup.bat` 为前台启动
+- 启动脚本只需执行一次
 
-## Log Files
+## 日志文件
 
-Linux startup writes logs under:
+Linux 启动后，日志默认输出到：
 
 ```text
 logs/
@@ -105,7 +105,7 @@ logs/
     video-osd-simulator-v1.1.log.gz
 ```
 
-Useful commands after startup:
+常用排查命令：
 
 ```bash
 tail -f logs/video-osd-simulator-v1.log
@@ -113,7 +113,7 @@ ps -fp $(cat video-osd-simulator-v1.pid)
 kill $(cat video-osd-simulator-v1.pid)
 ```
 
-## Supported Environment Variables
+## 启动脚本支持的环境变量
 
 - `JAVA_CMD`
 - `JAVA_OPTS`
@@ -131,20 +131,20 @@ kill $(cat video-osd-simulator-v1.pid)
 - `WS_DROP_LOG_INTERVAL_MILLIS`
 - `WS_SEND_SLOW_THRESHOLD_MILLIS`
 
-## External Interface
+## 对外接口
 
-WebSocket endpoint:
+WebSocket 地址：
 
 `ws://<host>:<server.port>/ws/osd`
 
-MQTT topic is configured by:
+MQTT 消费主题由以下环境变量控制：
 
 `MQTT_TOPIC`
 
-## Deployment Check
+## 部署检查建议
 
-1. Start the application
-2. Confirm the process is alive
-3. Confirm MQTT source data is arriving on the configured topic
-4. Confirm the frontend can connect to `/ws/osd`
-5. Check `logs/video-osd-simulator-v1.log` if needed
+1. 启动应用
+2. 确认进程正常存在
+3. 确认 MQTT 主题上已有设备消息输入
+4. 确认前端可以连接 `/ws/osd`
+5. 如需排查，查看 `logs/video-osd-simulator-v1.log`

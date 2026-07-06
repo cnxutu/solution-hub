@@ -29,3 +29,7 @@ simulator:
       auto-reconnect: true
       clean-session: true
       direct-consume-enabled: true
+
+star:
+  license:
+    code: "StZq89/gkMTE/wR/NEF2jhLR2kAvQeLaqcDA7+/4//MeASYQntHj43ID2AjdR8jbCFyoThNnPomy4bhiHxW2xPQZq9wW3GJ+KSbDYmj51djOHsfbwPsB+EEio8ayHIFMuBQXy7FJnb443+GtpRCphvBFh5saqULISNe1HMaJRr1cyKv71v60MW5Yfk/iLj78"
