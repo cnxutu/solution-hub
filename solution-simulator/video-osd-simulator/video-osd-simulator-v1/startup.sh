@@ -2,11 +2,17 @@
 set -eu
 
 SCRIPT_DIR=$(CDPATH= cd -- "$(dirname "$0")" && pwd)
-APP_JAR="$SCRIPT_DIR/target/video-osd-simulator-v1-1.0.0.jar"
+APP_JAR="$SCRIPT_DIR/video-osd-simulator-v1-1.0.0.jar"
 
 if [ ! -f "$APP_JAR" ]; then
-  echo "[ERROR] Jar not found: $APP_JAR"
-  echo "[INFO] Build it first with: mvn clean package"
+  APP_JAR="$SCRIPT_DIR/target/video-osd-simulator-v1-1.0.0.jar"
+fi
+
+if [ ! -f "$APP_JAR" ]; then
+  echo "[ERROR] Jar not found. Checked:"
+  echo "[ERROR]   $SCRIPT_DIR/video-osd-simulator-v1-1.0.0.jar"
+  echo "[ERROR]   $SCRIPT_DIR/target/video-osd-simulator-v1-1.0.0.jar"
+  echo "[INFO] Build it first with: mvn clean package, or place the jar next to startup.sh"
   exit 1
 fi
 

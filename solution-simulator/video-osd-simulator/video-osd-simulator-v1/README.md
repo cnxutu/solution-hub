@@ -25,6 +25,7 @@
 - Spring Boot `2.7.18`
 - 编译目标 `Java 8`
 - 打包产物：`target/video-osd-simulator-v1-1.0.0.jar`
+- 交付部署时，jar 可以放在 `startup.sh/startup.bat` 同级目录，或保留在 `target/` 目录
 
 构建命令：
 
@@ -127,6 +128,15 @@ sh startup.sh
 
 - `startup.sh` 只需要执行一次。
 - 上面两段是两种启动方式，不是“先默认启动，再自定义启动”。
+- `startup.sh` 会优先查找同级目录下的 `video-osd-simulator-v1-1.0.0.jar`，找不到时再查找 `target/video-osd-simulator-v1-1.0.0.jar`。
+
+推荐的 Linux 交付目录结构示例：
+
+```text
+/home/data/test/260706/
+  startup.sh
+  video-osd-simulator-v1-1.0.0.jar
+```
 
 ## 启动脚本支持的环境变量
 

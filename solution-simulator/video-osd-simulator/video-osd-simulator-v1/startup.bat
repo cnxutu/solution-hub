@@ -2,11 +2,15 @@
 setlocal
 
 set SCRIPT_DIR=%~dp0
-set APP_JAR=%SCRIPT_DIR%target\video-osd-simulator-v1-1.0.0.jar
+set APP_JAR=%SCRIPT_DIR%video-osd-simulator-v1-1.0.0.jar
+
+if not exist "%APP_JAR%" set APP_JAR=%SCRIPT_DIR%target\video-osd-simulator-v1-1.0.0.jar
 
 if not exist "%APP_JAR%" (
-  echo [ERROR] Jar not found: %APP_JAR%
-  echo [INFO] Build it first with: mvn clean package
+  echo [ERROR] Jar not found. Checked:
+  echo [ERROR]   %SCRIPT_DIR%video-osd-simulator-v1-1.0.0.jar
+  echo [ERROR]   %SCRIPT_DIR%target\video-osd-simulator-v1-1.0.0.jar
+  echo [INFO] Build it first with: mvn clean package, or place the jar next to startup.bat
   exit /b 1
 )
 
