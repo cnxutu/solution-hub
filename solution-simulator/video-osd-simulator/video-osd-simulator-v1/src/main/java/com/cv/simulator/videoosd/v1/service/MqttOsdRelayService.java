@@ -9,16 +9,20 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
+import java.util.Optional;
+
 @Service
 public class MqttOsdRelayService {
 
     private static final Logger log = LoggerFactory.getLogger(MqttOsdRelayService.class);
     private static final long MQTT_WS_WARN_THRESHOLD_MILLIS = 1_000L;
+    private static final long MQTT_WS_COST_SUMMARY_WINDOW_MILLIS = 5_000L;
 
     private final SimulatorOsdProperties properties;
     private final MqttOsdRecordMapper mqttOsdRecordMapper;
     private final OsdPayloadSupport payloadSupport;
     private final OsdBroadcastWebSocketHandler osdBroadcastWebSocketHandler;
+    private final MqttCostSummaryTracker mqttCostSummaryTracker;
 
     public MqttOsdRelayService(SimulatorOsdProperties properties,
                                MqttOsdRecordMapper mqttOsdRecordMapper,
@@ -28,6 +32,9 @@ public class MqttOsdRelayService {
         this.mqttOsdRecordMapper = mqttOsdRecordMapper;
         this.payloadSupport = payloadSupport;
         this.osdBroadcastWebSocketHandler = osdBroadcastWebSocketHandler;
+        this.mqttCostSummaryTracker = new MqttCostSummaryTracker(
+                MQTT_WS_COST_SUMMARY_WINDOW_MILLIS,
+                System::currentTimeMillis);
     }
 
     public void handleInboundMessage(String topic, String payload) {
@@ -48,18 +55,19 @@ public class MqttOsdRelayService {
 
     private void logCost(MappedOsdMessage mappedMessage, long startedAtNanos) {
         long durationMillis = (System.nanoTime() - startedAtNanos) / 1_000_000L;
-        if (durationMillis > MQTT_WS_WARN_THRESHOLD_MILLIS) {
-            log.warn("MQTT_TRACE [MQTT_TO_WS_COST] timestamp={}, publishTime={}, durationMillis={}, thresholdMillis={}",
-                    mappedMessage.getMqttTimestamp(),
-                    mappedMessage.getPublishTime(),
-                    durationMillis,
-                    MQTT_WS_WARN_THRESHOLD_MILLIS);
+        mqttCostSummaryTracker.record(durationMillis, durationMillis > MQTT_WS_WARN_THRESHOLD_MILLIS);
+        Optional<MqttCostSummaryTracker.CostSummary> summaryOptional = mqttCostSummaryTracker.drainReadySummary();
+        if (!summaryOptional.isPresent()) {
             return;
         }
-        log.info("MQTT_TRACE [MQTT_TO_WS_COST] timestamp={}, publishTime={}, durationMillis={}, thresholdMillis={}",
-                mappedMessage.getMqttTimestamp(),
-                mappedMessage.getPublishTime(),
-                durationMillis,
+        MqttCostSummaryTracker.CostSummary summary = summaryOptional.get();
+        log.info("MQTT_TRACE [MQTT_TO_WS_COST_SUMMARY] windowStartMillis={}, windowEndMillis={}, count={}, avgDurationMillis={}, maxDurationMillis={}, overThresholdCount={}, thresholdMillis={}",
+                summary.getWindowStartMillis(),
+                summary.getWindowEndMillis(),
+                summary.getCount(),
+                summary.getAvgDurationMillis(),
+                summary.getMaxDurationMillis(),
+                summary.getOverThresholdCount(),
                 MQTT_WS_WARN_THRESHOLD_MILLIS);
     }
 

@@ -66,13 +66,13 @@ simulator:
 mvn clean package
 ```
 
-再启动：
+默认参数启动：
 
 ```bat
 startup.bat
 ```
 
-按客户环境覆盖参数：
+如果要覆盖客户环境参数，先设置环境变量，再启动一次：
 
 ```bat
 set MQTT_BROKER_URL=tcp://192.168.1.112:1883
@@ -88,6 +88,11 @@ set WS_SEND_SLOW_THRESHOLD_MILLIS=1000
 startup.bat
 ```
 
+说明：
+
+- `startup.bat` 只需要执行一次。
+- 上面两段是两种启动方式，不是“先默认启动，再自定义启动”。
+
 ### Linux
 
 先构建：
@@ -96,13 +101,13 @@ startup.bat
 mvn clean package
 ```
 
-再启动：
+默认参数启动：
 
 ```bash
 sh startup.sh
 ```
 
-按客户环境覆盖参数：
+如果要覆盖客户环境参数，先设置环境变量，再启动一次：
 
 ```bash
 export MQTT_BROKER_URL=tcp://192.168.1.112:1883
@@ -117,6 +122,11 @@ export WS_DROP_LOG_INTERVAL_MILLIS=5000
 export WS_SEND_SLOW_THRESHOLD_MILLIS=1000
 sh startup.sh
 ```
+
+说明：
+
+- `startup.sh` 只需要执行一次。
+- 上面两段是两种启动方式，不是“先默认启动，再自定义启动”。
 
 ## 启动脚本支持的环境变量
 
@@ -169,6 +179,118 @@ socket.onmessage = (event) => {
 - 当前策略是实时优先，不保证前端收到每一条消息。
 - 某个 WebSocket 客户端发送过慢时，旧待发送消息会被新消息覆盖。
 - 服务端会输出 `WS_DROP_SUMMARY` 聚合日志，用来感知慢连接导致的丢弃。
+- 服务端会每 `5s` 输出一次 `MQTT_TRACE [MQTT_TO_WS_COST_SUMMARY]`，用于观察这段时间内 MQTT 到 WS 的平均耗时与最大耗时。
+
+## MQTT 输入消息
+
+v1 当前只消费 MQTT 报文中的少量关键字段，推荐输入结构如下：
+
+```json
+{
+  "method": "osd_info_push",
+  "seq": 4392,
+  "timestamp": 1782972590947,
+  "data": {
+    "attitude_head": 87.0,
+    "latitude": 30.18566738053386,
+    "longitude": 120.19797559348879,
+    "height": 100.24636383056641,
+    "speed_x": 0.0,
+    "speed_y": 0.0,
+    "speed_z": 1.0,
+    "gimbal_pitch": -0.1,
+    "gimbal_roll": 1.5,
+    "gimbal_yaw": 87.3602828699535
+  }
+}
+```
+
+当前 v1 实际消费字段说明：
+
+| 字段 | 类型 | 说明 | 是否必需 / 缺失行为 |
+| --- | --- | --- | --- |
+| `timestamp` | `long` | MQTT 消息时间戳，毫秒 | 非必需；缺失时仅影响服务端耗时日志中的时间信息 |
+| `data.attitude_head` | `number` | 无人机机头朝向 | 非必需；缺失时按 `0` 参与四角旋转计算 |
+| `data.latitude` | `number` | 无人机当前纬度 | 建议必需；缺失时无法计算 `frame_center` / `corners` |
+| `data.longitude` | `number` | 无人机当前经度 | 建议必需；缺失时无法计算 `frame_center` / `corners` |
+| `data.height` | `number` | 无人机当前高度 | 建议必需；缺失或小于等于 `0` 时无法计算 `frame_center` / `corners` |
+| `data.speed_x` | `number` | X 轴速度分量 | 非必需；缺失时 WebSocket 对应字段为空 |
+| `data.speed_y` | `number` | Y 轴速度分量 | 非必需；缺失时 WebSocket 对应字段为空 |
+| `data.speed_z` | `number` | Z 轴速度分量 | 非必需；缺失时 WebSocket 对应字段为空 |
+| `data.gimbal_pitch` | `number` | 云台俯仰角 | 非必需；缺失时 WebSocket 对应字段为空 |
+| `data.gimbal_roll` | `number` | 云台横滚角 | 非必需；缺失时 WebSocket 对应字段为空 |
+| `data.gimbal_yaw` | `number` | 云台偏航角 | 非必需；缺失时 WebSocket 对应字段为空 |
+
+说明：
+
+- 除上表字段外，其他 MQTT 字段即使存在，v1 当前也不会参与输出。
+- `frame_center` / `corners` 的计算依赖 `latitude + longitude + height`，并结合 `attitude_head`、`frame-hfov-deg`、`frame-vfov-deg`。
+
+## WebSocket 输出消息
+
+服务端推送给前端的消息结构如下：
+
+```json
+{
+  "latitude": 30.18566738053386,
+  "longitude": 120.19797559348879,
+  "height": 100.24636,
+  "corners": [
+    {
+      "lat": 30.186090117590297,
+      "lon": 120.19816482019777
+    },
+    {
+      "lat": 30.186613173200535,
+      "lon": 120.19872774328237
+    },
+    {
+      "lat": 30.18524464347742,
+      "lon": 120.19778636677981
+    },
+    {
+      "lat": 30.184721587867183,
+      "lon": 120.19722344369521
+    }
+  ],
+  "attitude_head": 87.0,
+  "speed_x": 0.0,
+  "speed_y": 0.0,
+  "speed_z": 1.0,
+  "gimbal_pitch": -0.1,
+  "gimbal_roll": 1.5,
+  "gimbal_yaw": 87.3602828699535,
+  "frame_center": {
+    "lat": 30.18566738053386,
+    "lon": 120.19797559348879
+  }
+}
+```
+
+字段说明：
+
+| 字段 | 类型 | 说明 |
+| --- | --- | --- |
+| `attitude_head` | `number` | 无人机机头朝向 |
+| `latitude` | `number` | 无人机当前纬度 |
+| `longitude` | `number` | 无人机当前经度 |
+| `height` | `number` | 无人机当前高度 |
+| `speed_x` | `number` | X 轴速度分量 |
+| `speed_y` | `number` | Y 轴速度分量 |
+| `speed_z` | `number` | Z 轴速度分量 |
+| `gimbal_pitch` | `number` | 云台俯仰角 |
+| `gimbal_roll` | `number` | 云台横滚角 |
+| `gimbal_yaw` | `number` | 云台偏航角 |
+| `frame_center.lat` | `number` | 画面中心点纬度 |
+| `frame_center.lon` | `number` | 画面中心点经度 |
+| `corners[].lat` | `number` | 画面角点纬度 |
+| `corners[].lon` | `number` | 画面角点经度 |
+
+说明：
+
+- `frame_center` 与 `corners` 由后端实时计算生成，不要求设备直接上送。
+- 若 `latitude`、`longitude` 或 `height` 缺失，`frame_center` / `corners` 可能为空。
+- 当前策略是实时优先，慢客户端可能跳过中间帧，只保证尽快收到最新值。
 
 ## 验证建议
 
