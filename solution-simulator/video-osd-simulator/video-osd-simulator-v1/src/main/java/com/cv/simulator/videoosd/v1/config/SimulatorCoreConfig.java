@@ -1,8 +1,6 @@
 package com.cv.simulator.videoosd.v1.config;
 
 import com.cv.simulator.videoosd.v1.mqtt.MqttOsdRecordMapper;
-import com.cv.simulator.videoosd.v1.mqtt.MqttOsdSubscriber;
-import com.cv.simulator.videoosd.v1.mqtt.PahoMqttOsdSubscriber;
 import com.cv.simulator.videoosd.v1.osd.OsdFrameGeometryCalculator;
 import com.cv.simulator.videoosd.v1.osd.OsdPayloadSupport;
 import com.cv.simulator.videoosd.v1.websocket.OsdBroadcastWebSocketHandler;
@@ -30,12 +28,10 @@ public class SimulatorCoreConfig {
     }
 
     @Bean
-    public MqttOsdSubscriber mqttOsdSubscriber(MqttOsdRecordMapper recordMapper) {
-        return new PahoMqttOsdSubscriber(recordMapper);
-    }
-
-    @Bean
-    public OsdBroadcastWebSocketHandler osdBroadcastWebSocketHandler() {
-        return new OsdBroadcastWebSocketHandler();
+    public OsdBroadcastWebSocketHandler osdBroadcastWebSocketHandler(SimulatorOsdProperties properties) {
+        return new OsdBroadcastWebSocketHandler(
+                properties.getWsSenderThreads(),
+                properties.getWsDropLogIntervalMillis(),
+                properties.getWsSendSlowThresholdMillis());
     }
 }

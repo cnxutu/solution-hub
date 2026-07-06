@@ -19,12 +19,18 @@ MQTT_QOS=${MQTT_QOS:-0}
 MQTT_AUTO_RECONNECT=${MQTT_AUTO_RECONNECT:-true}
 MQTT_CLEAN_SESSION=${MQTT_CLEAN_SESSION:-true}
 MQTT_DIRECT_CONSUME_ENABLED=${MQTT_DIRECT_CONSUME_ENABLED:-true}
+WS_SENDER_THREADS=${WS_SENDER_THREADS:-4}
+WS_DROP_LOG_INTERVAL_MILLIS=${WS_DROP_LOG_INTERVAL_MILLIS:-5000}
+WS_SEND_SLOW_THRESHOLD_MILLIS=${WS_SEND_SLOW_THRESHOLD_MILLIS:-1000}
 MQTT_USERNAME=${MQTT_USERNAME:-}
 MQTT_PASSWORD=${MQTT_PASSWORD:-}
 
 JAVA_ARGS="--server.port=$SERVER_PORT"
 JAVA_ARGS="$JAVA_ARGS --simulator.osd.enabled=true"
 JAVA_ARGS="$JAVA_ARGS --simulator.osd.websocket-path=/ws/osd"
+JAVA_ARGS="$JAVA_ARGS --simulator.osd.ws-sender-threads=$WS_SENDER_THREADS"
+JAVA_ARGS="$JAVA_ARGS --simulator.osd.ws-drop-log-interval-millis=$WS_DROP_LOG_INTERVAL_MILLIS"
+JAVA_ARGS="$JAVA_ARGS --simulator.osd.ws-send-slow-threshold-millis=$WS_SEND_SLOW_THRESHOLD_MILLIS"
 JAVA_ARGS="$JAVA_ARGS --simulator.osd.mqtt.broker-url=$MQTT_BROKER_URL"
 JAVA_ARGS="$JAVA_ARGS --simulator.osd.mqtt.client-id=$MQTT_CLIENT_ID"
 JAVA_ARGS="$JAVA_ARGS --simulator.osd.mqtt.topic=$MQTT_TOPIC"
@@ -45,5 +51,6 @@ echo "[INFO] Starting video-osd-simulator-v1"
 echo "[INFO] Broker=$MQTT_BROKER_URL"
 echo "[INFO] Topic=$MQTT_TOPIC"
 echo "[INFO] Port=$SERVER_PORT"
+echo "[INFO] WsSenderThreads=$WS_SENDER_THREADS"
 
 exec "$JAVA_CMD" -jar "$APP_JAR" $JAVA_ARGS

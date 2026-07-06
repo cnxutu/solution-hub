@@ -9,6 +9,9 @@ public class SimulatorOsdProperties {
     private String websocketPath = "/ws/osd";
     private double frameHfovDeg = 60.0D;
     private double frameVfovDeg = 40.0D;
+    private int wsSenderThreads = 4;
+    private long wsDropLogIntervalMillis = 5000L;
+    private long wsSendSlowThresholdMillis = 1000L;
     private final Mqtt mqtt = new Mqtt();
 
     public boolean isEnabled() {
@@ -41,6 +44,30 @@ public class SimulatorOsdProperties {
 
     public void setFrameVfovDeg(double frameVfovDeg) {
         this.frameVfovDeg = frameVfovDeg;
+    }
+
+    public int getWsSenderThreads() {
+        return wsSenderThreads;
+    }
+
+    public void setWsSenderThreads(int wsSenderThreads) {
+        this.wsSenderThreads = wsSenderThreads;
+    }
+
+    public long getWsDropLogIntervalMillis() {
+        return wsDropLogIntervalMillis;
+    }
+
+    public void setWsDropLogIntervalMillis(long wsDropLogIntervalMillis) {
+        this.wsDropLogIntervalMillis = wsDropLogIntervalMillis;
+    }
+
+    public long getWsSendSlowThresholdMillis() {
+        return wsSendSlowThresholdMillis;
+    }
+
+    public void setWsSendSlowThresholdMillis(long wsSendSlowThresholdMillis) {
+        this.wsSendSlowThresholdMillis = wsSendSlowThresholdMillis;
     }
 
     public Mqtt getMqtt() {

@@ -9,9 +9,10 @@
 ## 功能范围
 
 - 消费 MQTT 实时 OSD 消息
-- 按现有链路规则映射成 OSD 结构
-- 复用当前 payload 组装规则输出 JSON
+- 按现有链路规则计算中心点与四角
+- 输出精简 WebSocket 结构
 - 通过 WebSocket 广播到 `/ws/osd`
+- 慢客户端场景下只保留最新消息，避免反压 MQTT 消费
 
 当前版本不包含：
 
@@ -44,6 +45,9 @@ server:
 simulator:
   osd:
     websocket-path: /ws/osd
+    ws-sender-threads: 4
+    ws-drop-log-interval-millis: 5000
+    ws-send-slow-threshold-millis: 1000
     mqtt:
       broker-url: tcp://127.0.0.1:1883
       client-id: video-osd-simulator-v1
@@ -78,6 +82,9 @@ set MQTT_USERNAME=
 set MQTT_PASSWORD=
 set MQTT_QOS=0
 set SERVER_PORT=18083
+set WS_SENDER_THREADS=4
+set WS_DROP_LOG_INTERVAL_MILLIS=5000
+set WS_SEND_SLOW_THRESHOLD_MILLIS=1000
 startup.bat
 ```
 
@@ -105,6 +112,9 @@ export MQTT_USERNAME=
 export MQTT_PASSWORD=
 export MQTT_QOS=0
 export SERVER_PORT=18083
+export WS_SENDER_THREADS=4
+export WS_DROP_LOG_INTERVAL_MILLIS=5000
+export WS_SEND_SLOW_THRESHOLD_MILLIS=1000
 sh startup.sh
 ```
 
@@ -122,6 +132,9 @@ sh startup.sh
 - `MQTT_AUTO_RECONNECT`
 - `MQTT_CLEAN_SESSION`
 - `MQTT_DIRECT_CONSUME_ENABLED`
+- `WS_SENDER_THREADS`
+- `WS_DROP_LOG_INTERVAL_MILLIS`
+- `WS_SEND_SLOW_THRESHOLD_MILLIS`
 
 ## 对外接口
 
@@ -136,12 +149,34 @@ socket.onmessage = (event) => {
 };
 ```
 
+当前 WebSocket 输出字段固定为：
+
+- `attitude_head`
+- `latitude`
+- `longitude`
+- `height`
+- `speed_x`
+- `speed_y`
+- `speed_z`
+- `gimbal_pitch`
+- `gimbal_roll`
+- `gimbal_yaw`
+- `frame_center`
+- `corners`
+
+说明：
+
+- 当前策略是实时优先，不保证前端收到每一条消息。
+- 某个 WebSocket 客户端发送过慢时，旧待发送消息会被新消息覆盖。
+- 服务端会输出 `WS_DROP_SUMMARY` 聚合日志，用来感知慢连接导致的丢弃。
+
 ## 验证建议
 
-1. 启动应用后确认日志中出现 `MQTT_TRACE [SUBSCRIBED]`。
+1. 启动应用后确认 MQTT 已建立消费连接。
 2. 用 MQTT 客户端向目标 topic 推送现有格式的 OSD JSON。
 3. 用浏览器或调试页连接 `ws://127.0.0.1:18083/ws/osd`。
 4. 确认 WebSocket 能收到广播消息。
+5. 若前端故意降速，可观察 `OSD_TRACE [WS_DROP_SUMMARY]` 是否输出聚合丢弃信息。
 
 ## 测试
 

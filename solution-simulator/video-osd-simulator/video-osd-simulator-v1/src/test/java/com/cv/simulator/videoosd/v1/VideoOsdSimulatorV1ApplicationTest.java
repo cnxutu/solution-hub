@@ -1,12 +1,10 @@
 package com.cv.simulator.videoosd.v1;
 
 import com.cv.simulator.videoosd.v1.config.SimulatorOsdProperties;
-import com.cv.simulator.videoosd.v1.mqtt.MqttOsdSubscriber;
 import com.cv.simulator.videoosd.v1.websocket.OsdBroadcastWebSocketHandler;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -23,9 +21,6 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 )
 class VideoOsdSimulatorV1ApplicationTest {
 
-    @MockBean
-    private MqttOsdSubscriber mqttOsdSubscriber;
-
     @Autowired
     private SimulatorOsdProperties properties;
 
@@ -39,5 +34,6 @@ class VideoOsdSimulatorV1ApplicationTest {
         assertEquals("test-client", properties.getMqtt().getClientId());
         assertEquals("test/topic", properties.getMqtt().getTopic());
         assertEquals("/ws/osd", properties.getWebsocketPath());
+        assertEquals(5000L, properties.getWsDropLogIntervalMillis());
     }
 }

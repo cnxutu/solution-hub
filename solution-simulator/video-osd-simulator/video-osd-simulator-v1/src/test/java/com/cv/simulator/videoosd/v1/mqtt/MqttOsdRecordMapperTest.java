@@ -1,6 +1,7 @@
 package com.cv.simulator.videoosd.v1.mqtt;
 
-import com.cv.simulator.videoosd.v1.model.DeviceTelemetryRecord;
+import com.cv.simulator.videoosd.v1.model.MappedOsdMessage;
+import com.cv.simulator.videoosd.v1.model.OsdWebSocketPayload;
 import com.cv.simulator.videoosd.v1.osd.OsdFrameGeometryCalculator;
 import org.junit.jupiter.api.Test;
 
@@ -12,14 +13,17 @@ class MqttOsdRecordMapperTest {
     private final MqttOsdRecordMapper mapper = new MqttOsdRecordMapper(new OsdFrameGeometryCalculator());
 
     @Test
-    void mapsRealtimePayloadIntoTelemetryRecord() {
-        DeviceTelemetryRecord record = mapper.map(samplePayload(), 60.0, 40.0);
+    void mapsRealtimePayloadIntoCompactWsPayload() {
+        MappedOsdMessage mappedMessage = mapper.map(samplePayload(), 60.0, 40.0);
+        OsdWebSocketPayload payload = mappedMessage.getPayload();
 
-        assertEquals(87.0F, record.getAttitudeHead());
-        assertEquals("4", record.getWindDirection());
-        assertEquals("2026-07-02T14:09:50.947", record.getPublishTime().toString());
-        assertEquals(30.18566738053386D, record.getFrameCenter().getLat().doubleValue());
-        assertEquals(4, record.getCorners().size());
+        assertEquals(Long.valueOf(1782972590947L), mappedMessage.getMqttTimestamp());
+        assertEquals("2026-07-02T14:09:50.947", mappedMessage.getPublishTime().toString());
+        assertEquals(87.0F, payload.getAttitudeHead());
+        assertEquals(-0.1D, payload.getGimbalPitch());
+        assertEquals(0.0F, payload.getSpeedX());
+        assertEquals(30.18566738053386D, payload.getFrameCenter().getLat().doubleValue());
+        assertEquals(4, payload.getCorners().size());
     }
 
     @Test

@@ -11,8 +11,11 @@ simulator:
     websocket-path: /ws/osd
     frame-hfov-deg: 60.0
     frame-vfov-deg: 40.0
+    ws-sender-threads: 4
+    ws-drop-log-interval-millis: 5000
+    ws-send-slow-threshold-millis: 1000
     mqtt:
-      broker-url: tcp://127.0.0.1:1883
+      broker-url: tcp://192.168.1.112:1883
       client-id: video-osd-simulator-v1
       topic: thing/product/8UUXN4E00A05F5/drc/up
       username:
