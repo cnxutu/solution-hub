@@ -131,6 +131,39 @@ kill $(cat video-osd-simulator-v1.pid)
 - `WS_DROP_LOG_INTERVAL_MILLIS`
 - `WS_SEND_SLOW_THRESHOLD_MILLIS`
 
+
+### 验证环境变量是否生效
+
+```bash
+env | grep -E '^(SERVER_PORT|MQTT_BROKER_URL|MQTT_CLIENT_ID|MQTT_TOPIC|MQTT_USERNAME|MQTT_PASSWORD|MQTT_QOS|MQTT_AUTO_RECONNECT|MQTT_CLEAN_SESSION|MQTT_DIRECT_CONSUME_ENABLED)='
+```
+
+
+### 进行环境变量覆盖
+
+```bash
+export SERVER_PORT=18084
+export MQTT_BROKER_URL='tcp://192.168.1.112:1883'
+export MQTT_CLIENT_ID='f-video-osd-simulator'
+export MQTT_TOPIC='your/topic'
+export MQTT_USERNAME=''
+export MQTT_PASSWORD=''
+export MQTT_QOS=1
+export MQTT_AUTO_RECONNECT=true
+export MQTT_CLEAN_SESSION=true
+export MQTT_DIRECT_CONSUME_ENABLED=false
+```
+
+### 窗口启动
+
+```bash
+cd /你的项目目录/video-osd-simulator-v1
+chmod +x startup.sh
+./startup.sh
+```
+
+
+
 ## 对外接口
 
 WebSocket 地址：
