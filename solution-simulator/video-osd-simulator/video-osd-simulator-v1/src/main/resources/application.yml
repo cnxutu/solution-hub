@@ -14,15 +14,15 @@ simulator:
     ws-sender-threads: 4
     ws-drop-log-interval-millis: 5000
     ws-send-slow-threshold-millis: 1000
-#    ws-crypto:
-#      enabled: true
-#      mode: aes-gcm
-#      key-base64: MDEyMzQ1Njc4OWFiY2RlZg==
-#      key-id: relay-key-01
+    ws-crypto:
+      enabled: true
+      mode: aes-gcm
+      key-base64: MDEyMzQ1Njc4OWFiY2RlZg==
+      key-id: relay-key-01
 
     mqtt:
       broker-url: tcp://192.168.1.112:1883
-      client-id: video-osd-simulator-v1
+      client-id: video-osd-simulator-v12
       topic: thing/product/8UUXN4E00A05F5/drc/up
       username:
       password:
