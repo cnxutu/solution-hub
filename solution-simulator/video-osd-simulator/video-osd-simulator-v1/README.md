@@ -384,7 +384,8 @@ v1 当前只消费 MQTT 报文中的少量关键字段，推荐输入结构如�
 
 - 除上表字段外，其他 MQTT 字段即使存在，v1 当前也不会参与输出。
 - 若 `data.latitude` 或 `data.longitude` 为空，则该条消息会按心跳/无效 OSD 直接过滤，不进入 WS 推送。
-- `frame_center` / `corners` 的计算依赖 `latitude + longitude + height`，并结合 `attitude_head`、`frame-hfov-deg`、`frame-vfov-deg`。
+- `frame_center` / `corners` 的计算依赖 `latitude + longitude + height`，并结合画面朝向角、`frame-hfov-deg`、`frame-vfov-deg`。
+- 画面朝向角优先取 `attitude_head`，缺失时回退到 `gimbal_yaw`。
 
 ## WebSocket 输出消息
 
@@ -452,6 +453,8 @@ v1 当前只消费 MQTT 报文中的少量关键字段，推荐输入结构如�
 
 - `frame_center` 与 `corners` 由后端实时计算生成，不要求设备直接上送。
 - 若 `latitude`、`longitude` 或 `height` 缺失，`frame_center` / `corners` 可能为空。
+- `corners` 的顺序固定为相对视频画面的 `topLeft`、`topRight`、`bottomRight`、`bottomLeft`。
+- 上述 `top / bottom / left / right` 是画面语义，不是地图上的西北、东北、东南、西南。
 - 当前策略是实时优先，慢客户端可能跳过中间帧，只保证尽快收到最新值。
 
 ## 验证建议
